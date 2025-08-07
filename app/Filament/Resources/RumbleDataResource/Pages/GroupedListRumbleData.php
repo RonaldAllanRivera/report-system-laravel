@@ -3,17 +3,20 @@
 namespace App\Filament\Resources\RumbleDataResource\Pages;
 
 use App\Filament\Resources\RumbleDataResource;
+use App\Models\RumbleData;
 use Filament\Actions;
-use Filament\Resources\Pages\ListRecords;
+use Filament\Resources\Pages\Page;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
 
-class ListRumbleData extends ListRecords
+class GroupedListRumbleData extends Page
 {
     protected static string $resource = RumbleDataResource::class;
-
+    protected static string $view = 'filament.resources.rumble-data-resource.pages.grouped-list-rumble-data';
+    
     protected function getHeaderActions(): array
     {
         return [
-            Actions\CreateAction::make(),
             Actions\Action::make('uploadRumbleCsv')
                 ->label('Upload Rumble CSV')
                 ->icon('heroicon-o-arrow-up-tray')
@@ -21,8 +24,8 @@ class ListRumbleData extends ListRecords
                     \Filament\Forms\Components\FileUpload::make('csv_file')
                         ->label('Rumble CSV File')
                         ->acceptedFileTypes(['text/csv', 'text/plain', '.csv'])
-                        ->storeFiles(false) // Prevent permanent storage
-                        ->preserveFilenames() // Keep the original filename
+                        ->storeFiles(false)
+                        ->preserveFilenames()
                         ->required(),
                     \Filament\Forms\Components\Select::make('report_type')
                         ->label('Report Type')
@@ -35,7 +38,6 @@ class ListRumbleData extends ListRecords
                         ->required()
                         ->live()
                         ->afterStateUpdated(function (callable $set, $state) {
-                            // Update date fields based on report type
                             $today = now();
                             if ($state === 'daily') {
                                 $set('date_preset', 'yesterday');
@@ -77,9 +79,9 @@ class ListRumbleData extends ListRecords
                     $datePreset = $data['date_preset'];
                     $dateFrom = $data['date_from'] ?? null;
                     $dateTo = $data['date_to'] ?? null;
+                    $reportType = $data['report_type'] ?? 'daily';
 
                     // Handle date presets
-                    $reportType = $data['report_type'] ?? 'daily';
                     if ($datePreset !== 'custom') {
                         $today = now();
                         switch ($datePreset) {
@@ -108,6 +110,7 @@ class ListRumbleData extends ListRecords
                     if (!file_exists($path)) {
                         throw new \Exception('Unable to read the uploaded file. Please try again.');
                     }
+                    
                     $handle = fopen($path, 'r');
                     $header = fgetcsv($handle);
                     $campaignIdx = array_search('Campaign', $header);
@@ -145,5 +148,24 @@ class ListRumbleData extends ListRecords
                         ->send();
                 }),
         ];
+    }
+    
+    public function getGroupedRumbleData()
+    {
+        return RumbleData::query()
+            ->select([
+                'id',
+                'campaign',
+                'spend',
+                'cpm',
+                'date_from',
+                'date_to',
+                'report_type',
+                'created_at',
+                DB::raw('DATE(created_at) as upload_date')
+            ])
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->groupBy('upload_date');
     }
 }

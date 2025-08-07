@@ -12,5 +12,10 @@ class RumbleData extends Model
         'cpm',
         'date_from',
         'date_to',
+        'report_type',
+    ];
+    
+    protected $casts = [
+        'report_type' => 'string',
     ];
 }

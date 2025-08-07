@@ -37,14 +37,60 @@ class RumbleDataResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('campaign')->sortable()->searchable(),
-                Tables\Columns\TextColumn::make('spend')->sortable(),
-                Tables\Columns\TextColumn::make('cpm')->sortable(),
-                Tables\Columns\TextColumn::make('date_from')->date()->sortable(),
-                Tables\Columns\TextColumn::make('date_to')->date()->sortable(),
+                Tables\Columns\TextColumn::make('campaign')
+                    ->sortable()
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('spend')
+                    ->sortable()
+                    ->money('USD'),
+                Tables\Columns\TextColumn::make('cpm')
+                    ->sortable()
+                    ->money('USD'),
+                Tables\Columns\TextColumn::make('date_from')
+                    ->date()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('date_to')
+                    ->date()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('report_type')
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'daily' => 'success',
+                        'weekly' => 'primary',
+                        'monthly' => 'warning',
+                    })
+                    ->formatStateUsing(fn (string $state): string => ucfirst($state))
+                    ->sortable(),
             ])
             ->filters([
-                //
+                Tables\Filters\SelectFilter::make('report_type')
+                    ->options([
+                        'daily' => 'Daily',
+                        'weekly' => 'Weekly',
+                        'monthly' => 'Monthly',
+                    ]),
+                Tables\Filters\Filter::make('date_from')
+                    ->form([
+                        Forms\Components\DatePicker::make('date_from'),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query
+                            ->when(
+                                $data['date_from'],
+                                fn (Builder $query, $date): Builder => $query->where('date_from', '>=', $date),
+                            );
+                    }),
+                Tables\Filters\Filter::make('date_to')
+                    ->form([
+                        Forms\Components\DatePicker::make('date_to'),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query
+                            ->when(
+                                $data['date_to'],
+                                fn (Builder $query, $date): Builder => $query->where('date_to', '<=', $date),
+                            );
+                    }),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
@@ -67,7 +113,8 @@ class RumbleDataResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListRumbleData::route('/'),
+            'index' => Pages\GroupedListRumbleData::route('/'),
+            'list' => Pages\ListRumbleData::route('/list'),
             'create' => Pages\CreateRumbleData::route('/create'),
             'view' => Pages\ViewRumbleData::route('/{record}'),
             'edit' => Pages\EditRumbleData::route('/{record}/edit'),

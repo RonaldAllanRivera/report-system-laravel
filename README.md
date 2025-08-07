@@ -13,9 +13,12 @@ This Laravel 12 application allows users to upload CSV files from Rumble and Bin
   - Parse and store Campaign, Spend, and CPM data
   - Support for multiple report types (daily, weekly, monthly)
 - **Data Visualization**
+  - Reports grouped by upload date with expandable sections
   - Sortable and searchable data tables
-  - Filter by date ranges
-  - Clean, spreadsheet-like interface
+  - Filter by date ranges and report types
+  - Clean, modern interface with dark mode support
+  - Quick view of key metrics for each date group
+  - Color-coded report type indicators (daily/weekly/monthly)
 - **User Management**
   - All admins have full access to all data
   - No user restrictions (all uploads are visible to all admins)
