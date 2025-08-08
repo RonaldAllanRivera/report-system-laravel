@@ -8,6 +8,7 @@ use Filament\Actions;
 use Filament\Resources\Pages\Page;
 use Filament\Forms;
 use Illuminate\Support\Facades\DB;
+use Filament\Notifications\Notification;
 
 class GroupedListRumbleCampaignData extends Page
 {
@@ -21,6 +22,8 @@ class GroupedListRumbleCampaignData extends Page
             Actions\Action::make('uploadCampaignJson')
                 ->label('Upload Rumble Campaign JSON')
                 ->icon('heroicon-o-arrow-up-tray')
+                ->size('sm')
+                ->extraAttributes(['class' => 'w-auto text-xs'])
                 ->form([
                     Forms\Components\FileUpload::make('json_file')
                         ->label('Rumble Campaign JSON File')
@@ -197,6 +200,8 @@ class GroupedListRumbleCampaignData extends Page
                 ->label('Delete All Campaign Data')
                 ->icon('heroicon-o-trash')
                 ->color('danger')
+                ->size('sm')
+                ->extraAttributes(['class' => 'w-auto text-xs'])
                 ->requiresConfirmation()
                 ->modalHeading('Delete ALL Rumble Campaign Data?')
                 ->modalDescription('This will permanently delete all records in Rumble Campaign Data. This action cannot be undone.')
@@ -213,6 +218,8 @@ class GroupedListRumbleCampaignData extends Page
                 ->label('Delete Campaign Data by Upload Date')
                 ->icon('heroicon-o-trash')
                 ->color('danger')
+                ->size('sm')
+                ->extraAttributes(['class' => 'w-auto text-xs'])
                 ->form([
                     Forms\Components\Select::make('upload_date')
                         ->label('Upload Date')
@@ -243,6 +250,8 @@ class GroupedListRumbleCampaignData extends Page
                 ->label('Delete Campaign Data by Date Category')
                 ->icon('heroicon-o-trash')
                 ->color('danger')
+                ->size('sm')
+                ->extraAttributes(['class' => 'w-auto text-xs'])
                 ->form([
                     Forms\Components\Select::make('report_type')
                         ->label('Date Category')
@@ -281,10 +290,36 @@ class GroupedListRumbleCampaignData extends Page
                 'date_to',
                 'report_type',
                 'created_at',
-                DB::raw('DATE(created_at) as upload_date')
             ])
-            ->orderBy('created_at', 'desc')
+            ->orderBy('date_to', 'desc')
+            ->orderBy('date_from', 'desc')
             ->get()
-            ->groupBy('upload_date');
+            ->groupBy(function ($row) {
+                // Group by exact report date range key: from|to
+                return ($row->date_from ?? '') . '|' . ($row->date_to ?? '');
+            });
+    }
+
+    public function deleteRange(string $rangeKey): void
+    {
+        [$fromRaw, $toRaw] = array_pad(explode('|', $rangeKey, 2), 2, null);
+
+        $query = RumbleCampaignData::query();
+        if (!empty($fromRaw)) {
+            $query->whereDate('date_from', $fromRaw);
+        }
+        if (!empty($toRaw)) {
+            $query->whereDate('date_to', $toRaw);
+        }
+
+        $count = (clone $query)->count();
+        $query->delete();
+
+        $label = trim(($fromRaw ?? '') . ($toRaw && $toRaw !== $fromRaw ? ' – ' . $toRaw : ''));
+        Notification::make()
+            ->title('Deleted Rumble Campaign Data')
+            ->body("Deleted {$count} record(s) for {$label}.")
+            ->success()
+            ->send();
     }
 }

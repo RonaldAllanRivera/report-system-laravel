@@ -8,6 +8,7 @@ use Filament\Actions;
 use Filament\Resources\Pages\Page;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
+use Filament\Notifications\Notification;
 
 class GroupedListRumbleData extends Page
 {
@@ -20,6 +21,8 @@ class GroupedListRumbleData extends Page
             Actions\Action::make('uploadRumbleCsv')
                 ->label('Upload Rumble CSV')
                 ->icon('heroicon-o-arrow-up-tray')
+                ->size('sm')
+                ->extraAttributes(['class' => 'w-auto text-xs'])
                 ->form([
                     \Filament\Forms\Components\FileUpload::make('csv_file')
                         ->label('Rumble CSV File')
@@ -151,6 +154,8 @@ class GroupedListRumbleData extends Page
                 ->label('Delete All Rumble Data')
                 ->icon('heroicon-o-trash')
                 ->color('danger')
+                ->size('sm')
+                ->extraAttributes(['class' => 'w-auto text-xs'])
                 ->requiresConfirmation()
                 ->modalHeading('Delete ALL Rumble Data?')
                 ->modalDescription('This will permanently delete all records in Rumble Data. This action cannot be undone.')
@@ -167,6 +172,8 @@ class GroupedListRumbleData extends Page
                 ->label('Delete Rumble Data by Upload Date')
                 ->icon('heroicon-o-trash')
                 ->color('danger')
+                ->size('sm')
+                ->extraAttributes(['class' => 'w-auto text-xs'])
                 ->form([
                     \Filament\Forms\Components\Select::make('upload_date')
                         ->label('Upload Date')
@@ -197,6 +204,8 @@ class GroupedListRumbleData extends Page
                 ->label('Delete Rumble Data by Date Category')
                 ->icon('heroicon-o-trash')
                 ->color('danger')
+                ->size('sm')
+                ->extraAttributes(['class' => 'w-auto text-xs'])
                 ->form([
                     \Filament\Forms\Components\Select::make('report_type')
                         ->label('Date Category')
@@ -235,10 +244,35 @@ class GroupedListRumbleData extends Page
                 'date_to',
                 'report_type',
                 'created_at',
-                DB::raw('DATE(created_at) as upload_date')
             ])
-            ->orderBy('created_at', 'desc')
+            ->orderBy('date_to', 'desc')
+            ->orderBy('date_from', 'desc')
             ->get()
-            ->groupBy('upload_date');
+            ->groupBy(function ($row) {
+                return ($row->date_from ?? '') . '|' . ($row->date_to ?? '');
+            });
+    }
+
+    public function deleteRange(string $rangeKey): void
+    {
+        [$fromRaw, $toRaw] = array_pad(explode('|', $rangeKey, 2), 2, null);
+
+        $query = RumbleData::query();
+        if (!empty($fromRaw)) {
+            $query->whereDate('date_from', $fromRaw);
+        }
+        if (!empty($toRaw)) {
+            $query->whereDate('date_to', $toRaw);
+        }
+
+        $count = (clone $query)->count();
+        $query->delete();
+
+        $label = trim(($fromRaw ?? '') . ($toRaw && $toRaw !== $fromRaw ? ' – ' . $toRaw : ''));
+        Notification::make()
+            ->title('Deleted Rumble Data')
+            ->body("Deleted {$count} record(s) for {$label}.")
+            ->success()
+            ->send();
     }
 }
