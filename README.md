@@ -9,6 +9,13 @@ This Laravel 12 application lets you upload reports from Rumble and Binom, proce
   - Parses Campaign, Spend, CPM
   - Date presets and report type (daily/weekly/monthly)
   - Grouped by upload date with expand/collapse
+- **Binom Rumble Spent Data (CSV)**
+  - Parses Name, Leads, Revenue
+  - Semicolon-delimited with quoted values (";")
+  - Skips rows where Revenue <= 0 (e.g. "0.00 $")
+  - Normalizes headers (handles quoted headers and UTF-8 BOM)
+  - Date presets and report type (daily/weekly/monthly)
+  - Grouped view with per-range delete and summary revenue
 - **Rumble Campaign Data (JSON)**
   - Parses Name, CPM, Used/Daily Limit (extracts only the limit value; Unlimited → null)
   - Robust header normalization (works with scraped headers)
@@ -72,6 +79,8 @@ This Laravel 12 application lets you upload reports from Rumble and Binom, proce
 ## Usage
 - Log in to Filament Admin
 - Rumble Data: upload CSV (Campaign, Spend, CPM)
+- Binom Rumble Spent Data: upload CSV with columns `Name;Leads;Revenue` (quoted, semicolon-delimited)
+  - Revenue like `170.00 $` is stored as `170.00`; rows with `0.00 $` are ignored
 - Rumble Campaign Data: upload JSON with `header` + `body` arrays
   - Required columns: Name, CPM, Used / Daily Limit
   - Example Daily Limit formats: "$7.19 / $100", "$1,411.21 / Unlimited"
@@ -81,6 +90,7 @@ This Laravel 12 application lets you upload reports from Rumble and Binom, proce
 
 ## Import Formats
 - Rumble Data (CSV): `Campaign`, `Spend`, `CPM`
+- Binom Rumble Spent Data (CSV): `Name`, `Leads`, `Revenue` (semicolon `;` delimited, quoted)
 - Rumble Campaign Data (JSON): `header` + `body` arrays with columns `Name`, `CPM`, `Used / Daily Limit`
 
 ## Export

@@ -3,9 +3,25 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
-- [ ] Add Binom CSV import functionality
 - [ ] Implement data merging between Rumble and Binom reports
 - [ ] Add report export functionality
+
+## [0.4.0] - 2025-08-08
+### Added
+- Binom Rumble Spent Data CSV upload and grouped view
+  - Parses `Name`, `Leads`, `Revenue` from semicolon-delimited, quoted CSV
+  - Skips rows with `Revenue <= 0`
+  - Date presets and `report_type` (daily/weekly/monthly)
+  - Grouped by date range with per-group delete
+- Data management actions for Binom data
+  - Delete All, Delete by Upload Date, Delete by Date Category
+
+### Changed
+- README updated with Binom Rumble Spent Data usage and format details
+
+### Fixed
+- CSV header normalization in Binom import (handles quoted headers and UTF-8 BOM)
+- Blade view uses fully-qualified `Str::plural()`
 
 ## [0.3.0] - 2025-08-08
 ### Added
