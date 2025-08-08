@@ -36,85 +36,14 @@ class RumbleBinomReport extends Page
 
     protected function getHeaderActions(): array
     {
-        return [
-            Actions\Action::make('filter')
-                ->label('Filter')
-                ->icon('heroicon-o-funnel')
-                ->size('sm')
-                ->extraAttributes(['class' => 'w-auto text-xs'])
-                ->form([
-                    \Filament\Forms\Components\Select::make('report_type')
-                        ->label('Report Type')
-                        ->options([
-                            'daily' => 'Daily (Yesterday)',
-                            'weekly' => 'Weekly',
-                            'monthly' => 'Monthly',
-                        ])->default($this->filters['report_type'] ?? 'daily')
-                        ->required()
-                        ->live()
-                        ->afterStateUpdated(function (callable $set, $state) {
-                            $today = now();
-                            if ($state === 'daily') {
-                                $set('date_preset', 'yesterday');
-                                $set('date_from', $today->copy()->subDay()->toDateString());
-                                $set('date_to', $today->copy()->subDay()->toDateString());
-                            } elseif ($state === 'weekly') {
-                                $set('date_preset', 'last_7_days');
-                                $set('date_from', $today->copy()->subDays(7)->toDateString());
-                                $set('date_to', $today->copy()->subDay()->toDateString());
-                            } elseif ($state === 'monthly') {
-                                $set('date_preset', 'last_month');
-                                $set('date_from', $today->copy()->subMonthNoOverflow()->startOfMonth()->toDateString());
-                                $set('date_to', $today->copy()->subMonthNoOverflow()->endOfMonth()->toDateString());
-                            }
-                        }),
-                    \Filament\Forms\Components\Select::make('date_preset')
-                        ->label('Date Preset')
-                        ->options([
-                            'yesterday' => 'Yesterday',
-                            'last_7_days' => 'Last 7 Days',
-                            'last_month' => 'Last Month',
-                            'custom' => 'Custom Range',
-                        ])->default($this->filters['date_preset'] ?? 'yesterday')
-                        ->live(),
-                    \Filament\Forms\Components\DatePicker::make('date_from')
-                        ->label('Date From')
-                        ->visible(fn ($get) => $get('date_preset') === 'custom')
-                        ->default($this->filters['date_from'] ?? null)
-                        ->requiredIf('date_preset', 'custom'),
-                    \Filament\Forms\Components\DatePicker::make('date_to')
-                        ->label('Date To')
-                        ->visible(fn ($get) => $get('date_preset') === 'custom')
-                        ->default($this->filters['date_to'] ?? null)
-                        ->requiredIf('date_preset', 'custom'),
-                ])
-                ->action(function (array $data) {
-                    // Normalize preset into explicit dates ending at yesterday
-                    if (($data['date_preset'] ?? 'yesterday') !== 'custom') {
-                        $today = now();
-                        switch ($data['date_preset']) {
-                            case 'yesterday':
-                                $data['date_from'] = $today->copy()->subDay()->toDateString();
-                                $data['date_to'] = $data['date_from'];
-                                break;
-                            case 'last_7_days':
-                                $data['date_from'] = $today->copy()->subDays(7)->toDateString();
-                                $data['date_to'] = $today->copy()->subDay()->toDateString();
-                                break;
-                            case 'last_month':
-                                $data['date_from'] = $today->copy()->subMonthNoOverflow()->startOfMonth()->toDateString();
-                                $data['date_to'] = $today->copy()->subMonthNoOverflow()->endOfMonth()->toDateString();
-                                break;
-                        }
-                    }
-                    $this->filters = [
-                        'report_type' => $data['report_type'] ?? 'daily',
-                        'date_preset' => $data['date_preset'] ?? 'yesterday',
-                        'date_from' => $data['date_from'] ?? null,
-                        'date_to' => $data['date_to'] ?? null,
-                    ];
-                }),
-        ];
+        // Filter button removed in favor of inline report type tabs.
+        return [];
+    }
+
+    public function setReportType(string $type): void
+    {
+        $type = in_array($type, ['daily', 'weekly', 'monthly'], true) ? $type : 'daily';
+        $this->filters['report_type'] = $type;
     }
 
     /**

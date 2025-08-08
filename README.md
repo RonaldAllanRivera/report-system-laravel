@@ -99,7 +99,7 @@ This Laravel 12 application lets you upload reports from Rumble and Binom, proce
 
 ### Combined Report (Rumble - Binom Report)
 - Navigate: `Rumble and Binom Reports Only` → `4. Rumble Binom Report`
-- Use the Filter button (top-right) to pick Report Type and Date Preset (Yesterday, Last 7 Days, Last Month, or Custom). Presets always end at yesterday.
+- Switch report type using the tabs at the top-right of the page content: Daily | Weekly | Monthly. The page lists all batches (date ranges) for the selected type.
 - Collapsible sections per exact date range + report type:
   - Section header shows `Date From — Date To`, a type badge, plus total `Spent` and total `Revenue`.
   - Inside each section, a single aligned table shows rows A→Z by Account, then A→Z by Campaign.

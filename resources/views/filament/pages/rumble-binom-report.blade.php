@@ -5,6 +5,26 @@
 
 <x-filament-panels::page>
     <div class="space-y-3">
+        <div class="flex items-center justify-end">
+            @php($rt = $filters['report_type'] ?? 'daily')
+            <div class="inline-flex divide-x divide-gray-200 dark:divide-gray-700 rounded-md shadow-sm overflow-hidden ring-1 ring-gray-200 dark:ring-gray-700 bg-white dark:bg-gray-900" role="group">
+                <button type="button" wire:click="setReportType('daily')"
+                    class="px-3 py-1.5 text-xs font-medium focus:outline-none transition
+                    {{ $rt === 'daily' ? 'bg-amber-500 text-white' : 'bg-gray-50 text-gray-800 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700' }} rounded-l-md">
+                    Daily
+                </button>
+                <button type="button" wire:click="setReportType('weekly')"
+                    class="px-3 py-1.5 text-xs font-medium focus:outline-none transition
+                    {{ $rt === 'weekly' ? 'bg-amber-500 text-white' : 'bg-gray-50 text-gray-800 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700' }}">
+                    Weekly
+                </button>
+                <button type="button" wire:click="setReportType('monthly')"
+                    class="px-3 py-1.5 text-xs font-medium focus:outline-none transition
+                    {{ $rt === 'monthly' ? 'bg-amber-500 text-white' : 'bg-gray-50 text-gray-800 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700' }} rounded-r-md">
+                    Monthly
+                </button>
+            </div>
+        </div>
         @forelse($sections as $section)
             @php($report = $section['report'])
             <div x-data="{ open: false }" class="rounded-lg border bg-white">
@@ -103,10 +123,7 @@
                 <p class="text-xs text-gray-600">Type: <span class="font-medium">{{ strtoupper($filters['report_type'] ?? 'daily') }}</span></p>
             </div>
 
-            <div class="flex items-center gap-2">
-                <x-filament-actions::actions :actions="$this->getHeaderActions()" class="shrink-0"/>
-                <x-filament-actions::modals />
-            </div>
+            <div class="flex items-center gap-2"></div>
         </div>
     </x-slot>
 </x-filament-panels::page>
