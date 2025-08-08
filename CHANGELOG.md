@@ -3,8 +3,25 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
-- [ ] Implement data merging between Rumble and Binom reports
-- [ ] Add report export functionality
+- [ ] Add report export functionality (CSV/XLSX) with P/L and ROI formulas
+
+## [0.5.0] - 2025-08-08
+### Added
+- Combined page: **Rumble - Binom Report** (`App/Filament/Pages/RumbleBinomReport.php`)
+  - Joins `rumble_data`, `rumble_campaign_data`, and `binom_rumble_spent_data` by `date_from`/`date_to` and `report_type`
+  - Campaign matching by ID patterns (`NNNNNN_NN` fallback `NNNNNN`) with sanitized name fallback
+  - 10 columns: Account, Campaign, Daily Cap, Spend, Revenue, P/L, ROI, Conversions, CPM, Set CPM
+  - Header Filter action with report type and date presets that end at yesterday
+  - Group totals and overall totals
+
+### Changed
+- Alphabetical sorting A→Z
+  - Groups sorted by Account
+  - Rows within each group sorted by Campaign
+
+### Fixed
+- Carbon parse usage in page class
+- Blade wrapped with `<x-filament-panels::page>` and Actions components for consistent UI
 
 ## [0.4.0] - 2025-08-08
 ### Added

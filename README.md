@@ -21,6 +21,14 @@ This Laravel 12 application lets you upload reports from Rumble and Binom, proce
   - Robust header normalization (works with scraped headers)
   - Name cleaning (removes numeric ID prefixes)
   - Grouped view with type badges; Daily Limit rendered with $ in grouped view
+- **Combined Report: Rumble - Binom Report**
+  - Merges `Rumble Data`, `Rumble Campaign Data`, and `Binom Rumble Spent Data` by matching date range + `report_type` and campaign identity
+  - Campaign identity resolution:
+    - First tries ID patterns in strings: `NNNNNN_NN` (e.g., `250731_04`), fallback `NNNNNN`
+    - Falls back to sanitized name match (trim, collapse spaces, strip trailing parentheses)
+  - Columns (10): Account, Campaign, Daily Cap, Spend, Revenue, P/L, ROI, Conversions, CPM, Set CPM
+  - Grouped by Account with per-group and overall totals
+  - Alphabetically sorted A→Z by Account, and rows A→Z by Campaign
 - **Data Management**
   - Delete All
   - Delete by Upload Date (per day)
@@ -88,6 +96,12 @@ This Laravel 12 application lets you upload reports from Rumble and Binom, proce
 - Use grouped views to review entries by upload date
 - Manage data using delete actions (All, by Upload Date, by Date Category)
 
+### Combined Report (Rumble - Binom Report)
+- Navigate: `Reports` → `Rumble - Binom Report`
+- Pick Report Type and Date Preset (Yesterday, Last 7 Days, Last Month, or Custom). Presets always end at yesterday.
+- The page shows Account groups with per-group totals and overall totals.
+- Data is sorted A→Z by Account and A→Z by Campaign within each group.
+
 ## Import Formats
 - Rumble Data (CSV): `Campaign`, `Spend`, `CPM`
 - Binom Rumble Spent Data (CSV): `Name`, `Leads`, `Revenue` (semicolon `;` delimited, quoted)
@@ -95,6 +109,9 @@ This Laravel 12 application lets you upload reports from Rumble and Binom, proce
 
 ## Export
 - (Planned) Export filtered/sorted report as CSV or Excel
+  - Include formulas in exports:
+    - P/L: `=Revenue - Spend`
+    - ROI: `=IF(Spend>0, Revenue/Spend - 1, "")`
 
 ## License
 MIT
