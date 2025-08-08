@@ -4,10 +4,9 @@
 <x-filament-panels::page>
     <div class="space-y-6">
         @foreach($groupedData as $rangeKey => $items)
-            <div class="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div class="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden" x-data="{ open: false }" wire:key="binom-rumble-spent-{{ md5($rangeKey) }}">
                 <div 
-                    x-data="{ open: false }"
-                    @click="open = !open; $refs.body.classList.toggle('hidden')"
+                    @click="open = !open"
                     role="button"
                     tabindex="0"
                     class="w-full px-4 py-3 text-left bg-gray-50 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-950 transition-colors duration-150 flex items-center justify-between cursor-pointer"
@@ -60,7 +59,7 @@
                     </div>
                 </div>
                 
-                <div x-ref="body" class="hidden overflow-x-auto bg-white dark:bg-gray-800">
+                <div x-show="open" x-collapse class="overflow-x-auto bg-white dark:bg-gray-800">
                     <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                         <thead class="bg-gray-50 dark:bg-gray-700">
                             <tr>

@@ -27,7 +27,7 @@
         </div>
         @forelse($sections as $section)
             @php($report = $section['report'])
-            <div x-data="{ open: false }" class="rounded-lg border bg-white">
+            <div x-data="{ open: false }" class="rounded-lg border bg-white" wire:key="section-{{ $section['report_type'] }}-{{ $section['date_from'] }}-{{ $section['date_to'] }}">
                 <div @click="open = !open" class="flex items-center justify-between px-4 py-3 cursor-pointer">
                     <div class="font-medium text-gray-700">
                         {{ \Illuminate\Support\Carbon::parse($section['date_from'])->format('F j, Y') }} — {{ \Illuminate\Support\Carbon::parse($section['date_to'])->format('F j, Y') }}
