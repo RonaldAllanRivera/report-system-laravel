@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 - [ ] Add report export functionality (CSV/XLSX) with P/L and ROI formulas
 
+## [0.5.1] - 2025-08-08
+### Changed
+- Combined report layout refactored to a single, aligned table (removed collapsible groups)
+- Per-account "Account Summary" row now shown immediately below campaigns
+- Added spacer row after each account for readability
+- Bottom grand totals row renamed to "SUMMARY" and moved to `<tfoot>`
+- Alphabetical sorting preserved: A→Z by Account, then A→Z by Campaign
+
+### Fixed
+- Consistent money formatting across report:
+  - `Daily Cap`, `CPM`, and `Set CPM` now display with `$` using the page formatter
+  - Spend, Revenue, and P/L remain formatted with `$`
+
 ## [0.5.0] - 2025-08-08
 ### Added
 - Combined page: **Rumble - Binom Report** (`App/Filament/Pages/RumbleBinomReport.php`)

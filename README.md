@@ -98,9 +98,13 @@ This Laravel 12 application lets you upload reports from Rumble and Binom, proce
 
 ### Combined Report (Rumble - Binom Report)
 - Navigate: `Reports` → `Rumble - Binom Report`
-- Pick Report Type and Date Preset (Yesterday, Last 7 Days, Last Month, or Custom). Presets always end at yesterday.
-- The page shows Account groups with per-group totals and overall totals.
-- Data is sorted A→Z by Account and A→Z by Campaign within each group.
+- Use the Filter button (top-right) to pick Report Type and Date Preset (Yesterday, Last 7 Days, Last Month, or Custom). Presets always end at yesterday.
+- Single, aligned table (no collapsible groups):
+  - Rows are sorted A→Z by Account, then A→Z by Campaign.
+  - For each account, an "Account Summary" row appears immediately below its campaign rows.
+  - A subtle spacer row is rendered after each account for readability.
+  - A grand SUMMARY row is shown at the bottom (`tfoot`).
+- Money formatting: Spend, Revenue, P/L, Daily Cap, CPM, and Set CPM display with a `$` sign.
 
 ## Import Formats
 - Rumble Data (CSV): `Campaign`, `Spend`, `CPM`
