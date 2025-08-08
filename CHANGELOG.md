@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 - [ ] Add report export functionality (CSV/XLSX) with P/L and ROI formulas
 
+## [0.5.3] - 2025-08-08
+### Changed
+- Grouped list pages now sort rows alphabetically (A→Z) within each date range group:
+  - `Rumble Data`: by Campaign
+  - `Rumble Campaign Data`: by Name
+  - `Binom Rumble Spent Data`: by Name
+- Navigation consolidation: all four pages/resources appear under the Filament group `Rumble and Binom Reports Only` with corrected labels and explicit order:
+  1. Rumble Data
+  2. Rumble Campaign Data
+  3. Binom Rumble Spent Data
+  4. Rumble Binom Report
+
+### Fixed
+- Corrected minor pluralization typos in navigation labels.
+
 ## [0.5.2] - 2025-08-08
 ### Changed
 - Combined report now groups and joins strictly by `date_from`, `date_to`, and `report_type` across all datasets (Rumble Data, Rumble Campaign Data, Binom Rumble Spent Data). Removed any filtering by `created_at` to avoid timestamp drift issues.

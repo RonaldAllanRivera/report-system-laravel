@@ -247,6 +247,7 @@ class GroupedListRumbleData extends Page
             ])
             ->orderBy('date_to', 'desc')
             ->orderBy('date_from', 'desc')
+            ->orderBy('campaign', 'asc')
             ->get()
             ->groupBy(function ($row) {
                 return ($row->date_from ?? '') . '|' . ($row->date_to ?? '');

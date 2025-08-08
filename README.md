@@ -8,19 +8,19 @@ This Laravel 12 application lets you upload reports from Rumble and Binom, proce
 - **Rumble Data (CSV)**
   - Parses Campaign, Spend, CPM
   - Date presets and report type (daily/weekly/monthly)
-  - Grouped by upload date with expand/collapse
+  - Grouped by date range with expand/collapse; campaigns sorted A→Z
 - **Binom Rumble Spent Data (CSV)**
   - Parses Name, Leads, Revenue
   - Semicolon-delimited with quoted values (";")
   - Skips rows where Revenue <= 0 (e.g. "0.00 $")
   - Normalizes headers (handles quoted headers and UTF-8 BOM)
   - Date presets and report type (daily/weekly/monthly)
-  - Grouped view with per-range delete and summary revenue
+  - Grouped by date range with per-range delete; names sorted A→Z; summary revenue
 - **Rumble Campaign Data (JSON)**
   - Parses Name, CPM, Used/Daily Limit (extracts only the limit value; Unlimited → null)
   - Robust header normalization (works with scraped headers)
   - Name cleaning (removes numeric ID prefixes)
-  - Grouped view with type badges; Daily Limit rendered with $ in grouped view
+  - Grouped by date range with type badges; names sorted A→Z; Daily Limit rendered with $ in grouped view
 - **Combined Report: Rumble - Binom Report**
   - Merges `Rumble Data`, `Rumble Campaign Data`, and `Binom Rumble Spent Data`
   - Groups and joins strictly by `date_from`, `date_to`, and `report_type` across all datasets
@@ -94,8 +94,16 @@ This Laravel 12 application lets you upload reports from Rumble and Binom, proce
   - Required columns: Name, CPM, Used / Daily Limit
   - Example Daily Limit formats: "$7.19 / $100", "$1,411.21 / Unlimited"
 - Choose date preset or custom range and report type
-- Use grouped views to review entries by upload date
+- Use grouped views to review entries by date range
 - Manage data using delete actions (All, by Upload Date, by Date Category)
+
+### Navigation (Filament)
+- All reporting pages live under the navigation group: `Rumble and Binom Reports Only`.
+- Order and labels:
+  1. Rumble Data
+  2. Rumble Campaign Data
+  3. Binom Rumble Spent Data
+  4. Rumble Binom Report
 
 ### Combined Report (Rumble - Binom Report)
 - Navigate: `Rumble and Binom Reports Only` → `4. Rumble Binom Report`

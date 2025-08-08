@@ -293,6 +293,7 @@ class GroupedListRumbleCampaignData extends Page
             ])
             ->orderBy('date_to', 'desc')
             ->orderBy('date_from', 'desc')
+            ->orderBy('name', 'asc')
             ->get()
             ->groupBy(function ($row) {
                 // Group by exact report date range key: from|to
