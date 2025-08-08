@@ -22,12 +22,13 @@ This Laravel 12 application lets you upload reports from Rumble and Binom, proce
   - Name cleaning (removes numeric ID prefixes)
   - Grouped view with type badges; Daily Limit rendered with $ in grouped view
 - **Combined Report: Rumble - Binom Report**
-  - Merges `Rumble Data`, `Rumble Campaign Data`, and `Binom Rumble Spent Data` by matching date range + `report_type` and campaign identity
+  - Merges `Rumble Data`, `Rumble Campaign Data`, and `Binom Rumble Spent Data`
+  - Groups and joins strictly by `date_from`, `date_to`, and `report_type` across all datasets
   - Campaign identity resolution:
-    - First tries ID patterns in strings: `NNNNNN_NN` (e.g., `250731_04`), fallback `NNNNNN`
+    - First tries ID patterns: `NNNNNN_NN` (e.g., `250731_04`), fallback `NNNNNN`
     - Falls back to sanitized name match (trim, collapse spaces, strip trailing parentheses)
   - Columns (10): Account, Campaign, Daily Cap, Spend, Revenue, P/L, ROI, Conversions, CPM, Set CPM
-  - Grouped by Account with per-group and overall totals
+  - Within each date range, rows are grouped by Account with a per-account summary and an overall SUMMARY row
   - Alphabetically sorted A→Z by Account, and rows A→Z by Campaign
 - **Data Management**
   - Delete All
@@ -97,12 +98,12 @@ This Laravel 12 application lets you upload reports from Rumble and Binom, proce
 - Manage data using delete actions (All, by Upload Date, by Date Category)
 
 ### Combined Report (Rumble - Binom Report)
-- Navigate: `Reports` → `Rumble - Binom Report`
+- Navigate: `Rumble and Binom Reports Only` → `4. Rumble Binom Report`
 - Use the Filter button (top-right) to pick Report Type and Date Preset (Yesterday, Last 7 Days, Last Month, or Custom). Presets always end at yesterday.
-- Single, aligned table (no collapsible groups):
-  - Rows are sorted A→Z by Account, then A→Z by Campaign.
-  - For each account, an "Account Summary" row appears immediately below its campaign rows.
-  - A subtle spacer row is rendered after each account for readability.
+- Collapsible sections per exact date range + report type:
+  - Section header shows `Date From — Date To`, a type badge, plus total `Spent` and total `Revenue`.
+  - Inside each section, a single aligned table shows rows A→Z by Account, then A→Z by Campaign.
+  - For each account, an "Account Summary" row appears, followed by a spacer row for readability.
   - A grand SUMMARY row is shown at the bottom (`tfoot`).
 - Money formatting: Spend, Revenue, P/L, Daily Cap, CPM, and Set CPM display with a `$` sign.
 

@@ -16,6 +16,9 @@ class BinomRumbleSpentDataResource extends Resource
     protected static ?string $model = BinomRumbleSpentData::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-banknotes';
+    protected static ?string $navigationGroup = 'Rumble and Binom Reports Only';
+    protected static ?string $navigationLabel = '3. Binom Rumble Spent Datas';
+    protected static ?int $navigationSort = 3;
 
     public static function form(Form $form): Form
     {

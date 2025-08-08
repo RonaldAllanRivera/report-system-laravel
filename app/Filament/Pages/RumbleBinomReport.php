@@ -15,9 +15,10 @@ class RumbleBinomReport extends Page
 
     protected static string $view = 'filament.pages.rumble-binom-report';
 
-    protected static ?string $navigationLabel = 'Rumble - Binom Report';
+    protected static ?string $navigationLabel = '4. Rumble Binom Report';
 
-    protected static ?string $navigationGroup = 'Reports';
+    protected static ?string $navigationGroup = 'Rumble and Binom Reports Only';
+    protected static ?int $navigationSort = 4;
 
     public array $filters = [];
 
@@ -116,33 +117,29 @@ class RumbleBinomReport extends Page
         ];
     }
 
-    public function buildReportData(): array
+    /**
+     * Build combined report data for a specific date range & report type.
+     */
+    public function buildReportDataFor(string $df, string $dt, string $rt): array
     {
-        $df = $this->filters['date_from'] ?? null;
-        $dt = $this->filters['date_to'] ?? null;
-        $rt = $this->filters['report_type'] ?? 'daily';
-
-        if (!$df || !$dt) {
-            $y = now()->subDay()->toDateString();
-            $df = $dt = $y;
-        }
+        // normalized inputs expected (strings: Y-m-d)
 
         // Fetch datasets for the same date range and report type
         $rumble = RumbleData::query()
-            ->whereDate('date_from', $df)
-            ->whereDate('date_to', $dt)
+            ->where('date_from', $df)
+            ->where('date_to', $dt)
             ->where('report_type', $rt)
             ->get();
 
         $campaign = RumbleCampaignData::query()
-            ->whereDate('date_from', $df)
-            ->whereDate('date_to', $dt)
+            ->where('date_from', $df)
+            ->where('date_to', $dt)
             ->where('report_type', $rt)
             ->get();
 
         $binom = BinomRumbleSpentData::query()
-            ->whereDate('date_from', $df)
-            ->whereDate('date_to', $dt)
+            ->where('date_from', $df)
+            ->where('date_to', $dt)
             ->where('report_type', $rt)
             ->get();
 
@@ -225,7 +222,10 @@ class RumbleBinomReport extends Page
         $totalRevenue = array_sum(array_column($rows, 'revenue'));
 
         return [
-            'date_label' => \Illuminate\Support\Carbon::parse($df)->format('m/d'),
+            'date_from' => $df,
+            'date_to' => $dt,
+            'report_type' => $rt,
+            'date_label' => \Illuminate\Support\Carbon::parse($df)->format('F j, Y'),
             'groups' => $groups,
             'totals' => [
                 'spend' => $totalSpend,
@@ -233,7 +233,59 @@ class RumbleBinomReport extends Page
                 'pl' => $totalRevenue - $totalSpend,
                 'roi' => $totalSpend > 0 ? (($totalRevenue / $totalSpend) - 1.0) : null,
             ],
+            // raw rumble presence for this range
+            'has_rumble' => $rumble->count() > 0,
         ];
+    }
+
+    /**
+     * Backwards-compatible: build based on current filters.
+     */
+    public function buildReportData(): array
+    {
+        $df = $this->filters['date_from'] ?? null;
+        $dt = $this->filters['date_to'] ?? null;
+        $rt = $this->filters['report_type'] ?? 'daily';
+
+        if (!$df || !$dt) {
+            $y = now()->subDay()->toDateString();
+            $df = $dt = $y;
+        }
+
+        return $this->buildReportDataFor($df, $dt, $rt);
+    }
+
+    /**
+     * Returns an array of grouped sections keyed by upload date and report_type.
+     */
+    public function buildGroupedByUploadDate(): array
+    {
+        $rt = $this->filters['report_type'] ?? 'daily';
+
+        // Find distinct upload batches per day and date range to avoid mixing multiple uploads on same day
+        $batches = RumbleData::query()
+            ->selectRaw('date_from as df, date_to as dt, report_type as rt, COUNT(*) as c')
+            ->when($rt, fn ($q) => $q->where('report_type', $rt))
+            ->groupBy('df', 'dt', 'rt')
+            ->orderByDesc('df')
+            ->orderByDesc('dt')
+            ->get();
+
+        $sections = [];
+        foreach ($batches as $batch) {
+            $df = (string) $batch->df;
+            $dt = (string) $batch->dt;
+            $brt = (string) ($batch->rt ?? $rt);
+            $sections[] = [
+                'date_from' => $df,
+                'date_to' => $dt,
+                'report_type' => $brt,
+                'count' => (int) $batch->c,
+                'report' => $this->buildReportDataFor($df, $dt, $brt),
+            ];
+        }
+
+        return $sections;
     }
 
     protected function extractId(string $s): ?string

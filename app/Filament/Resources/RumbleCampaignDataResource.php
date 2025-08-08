@@ -15,8 +15,8 @@ class RumbleCampaignDataResource extends Resource
     protected static ?string $model = RumbleCampaignData::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-chart-bar';
-    protected static ?string $navigationGroup = 'Rumble Data';
-    protected static ?string $navigationLabel = 'Campaign Data';
+    protected static ?string $navigationGroup = 'Rumble and Binom Reports Only';
+    protected static ?string $navigationLabel = '2. Rumble Campaign Data';
     protected static ?int $navigationSort = 2;
 
     public static function form(Form $form): Form
