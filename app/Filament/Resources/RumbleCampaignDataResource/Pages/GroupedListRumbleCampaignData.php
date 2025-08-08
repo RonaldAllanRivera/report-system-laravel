@@ -1,33 +1,34 @@
 <?php
 
-namespace App\Filament\Resources\RumbleDataResource\Pages;
+namespace App\Filament\Resources\RumbleCampaignDataResource\Pages;
 
-use App\Filament\Resources\RumbleDataResource;
-use App\Models\RumbleData;
+use App\Filament\Resources\RumbleCampaignDataResource;
+use App\Models\RumbleCampaignData;
 use Filament\Actions;
 use Filament\Resources\Pages\Page;
-use Illuminate\Database\Eloquent\Builder;
+use Filament\Forms;
 use Illuminate\Support\Facades\DB;
 
-class GroupedListRumbleData extends Page
+class GroupedListRumbleCampaignData extends Page
 {
-    protected static string $resource = RumbleDataResource::class;
-    protected static string $view = 'filament.resources.rumble-data-resource.pages.grouped-list-rumble-data';
-    
+    protected static string $resource = RumbleCampaignDataResource::class;
+
+    protected static string $view = 'filament.resources.rumble-campaign-data-resource.pages.grouped-list-rumble-campaign-data';
+
     protected function getHeaderActions(): array
     {
         return [
-            Actions\Action::make('uploadRumbleCsv')
-                ->label('Upload Rumble CSV')
+            Actions\Action::make('uploadCampaignJson')
+                ->label('Upload Rumble Campaign JSON')
                 ->icon('heroicon-o-arrow-up-tray')
                 ->form([
-                    \Filament\Forms\Components\FileUpload::make('csv_file')
-                        ->label('Rumble CSV File')
-                        ->acceptedFileTypes(['text/csv', 'text/plain', '.csv'])
+                    Forms\Components\FileUpload::make('json_file')
+                        ->label('Rumble Campaign JSON File')
+                        ->acceptedFileTypes(['application/json', 'text/json', '.json'])
                         ->storeFiles(false)
                         ->preserveFilenames()
                         ->required(),
-                    \Filament\Forms\Components\Select::make('report_type')
+                    Forms\Components\Select::make('report_type')
                         ->label('Report Type')
                         ->options([
                             'daily' => 'Daily (Yesterday)',
@@ -53,7 +54,7 @@ class GroupedListRumbleData extends Page
                                 $set('date_to', $today->copy()->subMonthNoOverflow()->endOfMonth()->toDateString());
                             }
                         }),
-                    \Filament\Forms\Components\Select::make('date_preset')
+                    Forms\Components\Select::make('date_preset')
                         ->label('Date Preset')
                         ->options([
                             'yesterday' => 'Yesterday',
@@ -63,25 +64,23 @@ class GroupedListRumbleData extends Page
                         ])
                         ->live()
                         ->default('yesterday')
-                        ->required()
-                        ->extraAttributes(['class' => 'hover:text-gray-900']),
-                    \Filament\Forms\Components\DatePicker::make('date_from')
+                        ->required(),
+                    Forms\Components\DatePicker::make('date_from')
                         ->label('Date From')
                         ->visible(fn ($get) => $get('date_preset') === 'custom')
-                        ->requiredIf('date_preset', 'custom'),
-                    \Filament\Forms\Components\DatePicker::make('date_to')
+                        ->required(fn ($get) => $get('date_preset') === 'custom'),
+                    Forms\Components\DatePicker::make('date_to')
                         ->label('Date To')
                         ->visible(fn ($get) => $get('date_preset') === 'custom')
-                        ->requiredIf('date_preset', 'custom'),
+                        ->required(fn ($get) => $get('date_preset') === 'custom'),
                 ])
                 ->action(function (array $data) {
-                    $uploadedFile = $data['csv_file'];
+                    $uploadedFile = $data['json_file'];
                     $datePreset = $data['date_preset'];
                     $dateFrom = $data['date_from'] ?? null;
                     $dateTo = $data['date_to'] ?? null;
                     $reportType = $data['report_type'] ?? 'daily';
 
-                    // Handle date presets
                     if ($datePreset !== 'custom') {
                         $today = now();
                         switch ($datePreset) {
@@ -100,36 +99,82 @@ class GroupedListRumbleData extends Page
                         }
                     }
 
-                    // Parse and import CSV
                     $path = $uploadedFile->getRealPath();
-                    
-                    if (!$path) {
-                        throw new \Exception('The uploaded file is not valid. Please try again.');
-                    }
-                    
-                    if (!file_exists($path)) {
+                    if (!$path || !file_exists($path)) {
                         throw new \Exception('Unable to read the uploaded file. Please try again.');
                     }
-                    
-                    $handle = fopen($path, 'r');
-                    $header = fgetcsv($handle);
-                    $campaignIdx = array_search('Campaign', $header);
-                    $spendIdx = array_search('Spend', $header);
-                    $cpmIdx = array_search('CPM', $header);
 
-                    if ($campaignIdx === false || $spendIdx === false || $cpmIdx === false) {
-                        throw new \Exception('CSV must contain Campaign, Spend, and CPM columns.');
+                    $jsonContent = file_get_contents($path);
+                    $json = json_decode($jsonContent, true);
+                    if (!is_array($json) || !isset($json['header'], $json['body']) || !is_array($json['header']) || !is_array($json['body'])) {
+                        throw new \Exception('Invalid JSON structure. Expected keys: header, body.');
+                    }
+
+                    // Normalize headers to find indices more reliably
+                    $normalize = function ($value) {
+                        $value = strtolower(trim((string) $value));
+                        $value = str_replace(['\\', '/', '-', '_'], '', $value);
+                        $value = preg_replace('/\s+/', '', $value);
+                        return $value;
+                    };
+                    $normalizedHeader = array_map($normalize, $json['header']);
+
+                    $nameIdx = array_search('name', $normalizedHeader);
+                    $cpmIdx = array_search('cpm', $normalizedHeader);
+                    $usedDailyIdx = array_search('useddailylimit', $normalizedHeader);
+
+                    if ($nameIdx === false || $cpmIdx === false || $usedDailyIdx === false) {
+                        throw new \Exception('JSON must contain Name, CPM, and Used / Daily Limit columns.');
                     }
 
                     $rows = [];
-                    while (($row = fgetcsv($handle)) !== false) {
-                        // Remove the [12345] prefix from campaign names
-                        $campaignName = preg_replace('/^\[\d+\]\s*/', '', $row[$campaignIdx]);
-                        
+
+                    $extractDailyLimit = function ($value) {
+                        if ($value === null) return null;
+                        $val = trim((string) $value);
+                        if ($val === '') return null;
+                        // Expect formats like "$7.03 / $100" or "$1,411.21 / Unlimited"
+                        if (stripos($val, 'unlimited') !== false) {
+                            return null;
+                        }
+                        if (strpos($val, '/') !== false) {
+                            [$left, $right] = array_pad(explode('/', $val, 2), 2, null);
+                            $right = trim((string) $right);
+                            $digits = preg_replace('/[^0-9]/', '', $right);
+                            return $digits !== '' ? (int) $digits : null;
+                        }
+                        return null;
+                    };
+
+                    $extractCpm = function ($value): float {
+                        $val = trim((string) $value);
+                        if ($val === '') return 0.0;
+                        // Capture the first numeric token (supports comma or dot)
+                        if (preg_match('/([0-9]+(?:[\.,][0-9]+)?)/', $val, $m)) {
+                            $num = $m[1];
+                            // Remove thousand separators, normalize decimal to dot
+                            $num = str_replace(',', '', $num);
+                            return (float) $num;
+                        }
+                        return 0.0;
+                    };
+
+                    foreach ($json['body'] as $row) {
+                        if (!is_array($row)) continue;
+                        $name = (string) ($row[$nameIdx] ?? '');
+                        // Remove numeric prefixes like "123 - ", "[123] ", "123.", etc.
+                        $name = preg_replace('/^\s*(?:\[\d+\]|\d+)\s*[-–.:]*\s*/', '', $name);
+                        $cpm = $extractCpm($row[$cpmIdx] ?? null);
+                        $dailyLimit = $extractDailyLimit($row[$usedDailyIdx] ?? null);
+
+                        if ($name === '') {
+                            continue;
+                        }
+
                         $rows[] = [
-                            'campaign' => $campaignName,
-                            'spend' => $row[$spendIdx],
-                            'cpm' => $row[$cpmIdx],
+                            'name' => $name,
+                            'cpm' => $cpm,
+                            'daily_limit' => $dailyLimit,
                             'date_from' => $dateFrom,
                             'date_to' => $dateTo,
                             'report_type' => $reportType,
@@ -137,41 +182,42 @@ class GroupedListRumbleData extends Page
                             'updated_at' => now(),
                         ];
                     }
-                    fclose($handle);
 
-                    \App\Models\RumbleData::insert($rows);
+                    if (!empty($rows)) {
+                        RumbleCampaignData::insert($rows);
+                    }
 
                     \Filament\Notifications\Notification::make()
-                        ->title('Rumble CSV Imported')
-                        ->body('Your Rumble CSV has been imported successfully!')
+                        ->title('Rumble Campaign JSON Imported')
+                        ->body('Your campaign JSON has been imported successfully!')
                         ->success()
                         ->send();
                 }),
-            Actions\Action::make('deleteAllRumbleData')
-                ->label('Delete All Rumble Data')
+            Actions\Action::make('deleteAllCampaignData')
+                ->label('Delete All Campaign Data')
                 ->icon('heroicon-o-trash')
                 ->color('danger')
                 ->requiresConfirmation()
-                ->modalHeading('Delete ALL Rumble Data?')
-                ->modalDescription('This will permanently delete all records in Rumble Data. This action cannot be undone.')
+                ->modalHeading('Delete ALL Rumble Campaign Data?')
+                ->modalDescription('This will permanently delete all records in Rumble Campaign Data. This action cannot be undone.')
                 ->action(function () {
-                    $count = RumbleData::query()->count();
-                    RumbleData::query()->delete();
+                    $count = RumbleCampaignData::query()->count();
+                    RumbleCampaignData::query()->delete();
                     \Filament\Notifications\Notification::make()
-                        ->title('Deleted Rumble Data')
+                        ->title('Deleted Rumble Campaign Data')
                         ->body("Deleted {$count} record(s).")
                         ->success()
                         ->send();
                 }),
-            Actions\Action::make('deleteRumbleDataByDate')
-                ->label('Delete Rumble Data by Upload Date')
+            Actions\Action::make('deleteCampaignDataByDate')
+                ->label('Delete Campaign Data by Upload Date')
                 ->icon('heroicon-o-trash')
                 ->color('danger')
                 ->form([
-                    \Filament\Forms\Components\Select::make('upload_date')
+                    Forms\Components\Select::make('upload_date')
                         ->label('Upload Date')
                         ->options(function () {
-                            return RumbleData::query()
+                            return RumbleCampaignData::query()
                                 ->selectRaw('DATE(created_at) as d')
                                 ->distinct()
                                 ->orderBy('d', 'desc')
@@ -185,20 +231,20 @@ class GroupedListRumbleData extends Page
                 ->modalDescription('This will delete all records imported on the selected date.')
                 ->action(function (array $data) {
                     $date = $data['upload_date'];
-                    $count = RumbleData::query()->whereDate('created_at', $date)->count();
-                    RumbleData::query()->whereDate('created_at', $date)->delete();
+                    $count = RumbleCampaignData::query()->whereDate('created_at', $date)->count();
+                    RumbleCampaignData::query()->whereDate('created_at', $date)->delete();
                     \Filament\Notifications\Notification::make()
-                        ->title('Deleted Rumble Data')
+                        ->title('Deleted Rumble Campaign Data')
                         ->body("Deleted {$count} record(s) from {$date}.")
                         ->success()
                         ->send();
                 }),
-            Actions\Action::make('deleteRumbleDataByCategory')
-                ->label('Delete Rumble Data by Date Category')
+            Actions\Action::make('deleteCampaignDataByCategory')
+                ->label('Delete Campaign Data by Date Category')
                 ->icon('heroicon-o-trash')
                 ->color('danger')
                 ->form([
-                    \Filament\Forms\Components\Select::make('report_type')
+                    Forms\Components\Select::make('report_type')
                         ->label('Date Category')
                         ->options([
                             'daily' => 'Daily',
@@ -212,25 +258,25 @@ class GroupedListRumbleData extends Page
                 ->modalDescription('This will delete all records with the selected date category (report type).')
                 ->action(function (array $data) {
                     $type = $data['report_type'];
-                    $count = RumbleData::query()->where('report_type', $type)->count();
-                    RumbleData::query()->where('report_type', $type)->delete();
+                    $count = RumbleCampaignData::query()->where('report_type', $type)->count();
+                    RumbleCampaignData::query()->where('report_type', $type)->delete();
                     \Filament\Notifications\Notification::make()
-                        ->title('Deleted Rumble Data')
+                        ->title('Deleted Rumble Campaign Data')
                         ->body("Deleted {$count} {$type} record(s).")
                         ->success()
                         ->send();
                 }),
         ];
     }
-    
-    public function getGroupedRumbleData()
+
+    public function getGroupedCampaignData()
     {
-        return RumbleData::query()
+        return RumbleCampaignData::query()
             ->select([
                 'id',
-                'campaign',
-                'spend',
+                'name',
                 'cpm',
+                'daily_limit',
                 'date_from',
                 'date_to',
                 'report_type',

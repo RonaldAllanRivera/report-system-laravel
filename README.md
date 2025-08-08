@@ -1,30 +1,29 @@
-# Rumble + Binom Report System (CSV Upload Version)
+# Rumble + Binom Report System (CSV/JSON Upload)
 
 ## Overview
-This Laravel 12 application allows users to upload CSV files from Rumble and Binom, automatically processes the data, and provides performance reports. No direct API integration is required—just upload your CSVs and get actionable insights.
+This Laravel 12 application lets you upload reports from Rumble and Binom, processes them, and shows grouped, filterable admin views. No API needed—upload CSV/JSON and get insights.
 
 ## Features
-- **Filament Admin Panel** (free version)
-- **Rumble CSV Upload**
-  - Upload daily, weekly, or monthly reports
-  - Automatic campaign name cleaning (removes ID prefixes)
-  - Date range selection with presets (yesterday, last 7 days, last month)
-- **Data Processing**
-  - Parse and store Campaign, Spend, and CPM data
-  - Support for multiple report types (daily, weekly, monthly)
-- **Data Visualization**
-  - Reports grouped by upload date with expandable sections
-  - Sortable and searchable data tables
-  - Filter by date ranges and report types
-  - Clean, modern interface with dark mode support
-  - Quick view of key metrics for each date group
-  - Color-coded report type indicators (daily/weekly/monthly)
-- **User Management**
-  - All admins have full access to all data
-  - No user restrictions (all uploads are visible to all admins)
+- **Filament Admin Panel** (free)
+- **Rumble Data (CSV)**
+  - Parses Campaign, Spend, CPM
+  - Date presets and report type (daily/weekly/monthly)
+  - Grouped by upload date with expand/collapse
+- **Rumble Campaign Data (JSON)**
+  - Parses Name, CPM, Used/Daily Limit (extracts only the limit value; Unlimited → null)
+  - Robust header normalization (works with scraped headers)
+  - Name cleaning (removes numeric ID prefixes)
+  - Grouped view with type badges; Daily Limit rendered with $ in grouped view
+- **Data Management**
+  - Delete All
+  - Delete by Upload Date (per day)
+  - Delete by Date Category (daily/weekly/monthly)
+- **UX**
+  - Clean HTML tables for grouped views (dark mode supported)
+  - Color-coded badges for report types
 
 ## Technologies
-- Laravel 11 (PHP 8.2+)
+- Laravel 12 (PHP 8.3+)
 - Filament Admin (free version)
 - MySQL / MariaDB
 - Laravel Breeze (optional, for authentication)
@@ -71,19 +70,21 @@ This Laravel 12 application allows users to upload CSV files from Rumble and Bin
    ```
 
 ## Usage
-- Log in as Admin (if auth enabled)
-- Upload Google Ads and Binom CSV files via the dashboard
-- View, filter, and export unified reports
+- Log in to Filament Admin
+- Rumble Data: upload CSV (Campaign, Spend, CPM)
+- Rumble Campaign Data: upload JSON with `header` + `body` arrays
+  - Required columns: Name, CPM, Used / Daily Limit
+  - Example Daily Limit formats: "$7.19 / $100", "$1,411.21 / Unlimited"
+- Choose date preset or custom range and report type
+- Use grouped views to review entries by upload date
+- Manage data using delete actions (All, by Upload Date, by Date Category)
 
-## CSV Format Requirements
-### Google Ads CSV
-- Required columns: `Campaign Name/ID`, `Clicks`, `Impressions`, `Conversions`, `Cost`
-
-### Binom CSV
-- Required columns: `Campaign Name/ID`, `Clicks`, `Conversions`, `Revenue`, `ROI`
+## Import Formats
+- Rumble Data (CSV): `Campaign`, `Spend`, `CPM`
+- Rumble Campaign Data (JSON): `header` + `body` arrays with columns `Name`, `CPM`, `Used / Daily Limit`
 
 ## Export
-- Export filtered/sorted report as CSV or Excel
+- (Planned) Export filtered/sorted report as CSV or Excel
 
 ## License
 MIT
