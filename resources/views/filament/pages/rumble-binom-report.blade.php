@@ -42,7 +42,7 @@
                     </div>
                 </div>
                 <div x-show="open" x-collapse class="overflow-x-auto">
-                    @if($report['has_rumble'])
+                    @if($report['has_rows'])
                         <table class="min-w-full text-xs">
                             <thead class="bg-gray-50">
                                 <tr class="text-left">
@@ -107,7 +107,7 @@
                             </tfoot>
                         </table>
                     @else
-                        <div class="px-4 py-3 text-xs text-gray-600">No Rumble Data for this date range.</div>
+                        <div class="px-4 py-3 text-xs text-gray-600">No data for this date range.</div>
                     @endif
                 </div>
             </div>

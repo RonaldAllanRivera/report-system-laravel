@@ -10,9 +10,11 @@ All notable changes to this project will be documented in this file.
 - Combined report now groups and joins strictly by `date_from`, `date_to`, and `report_type` across all datasets (Rumble Data, Rumble Campaign Data, Binom Rumble Spent Data). Removed any filtering by `created_at` to avoid timestamp drift issues.
 - Section headers now display the date range and report type badge, and show both total Spent and total Revenue.
 - Replaced header Filter button with inline report-type tabs (Daily | Weekly | Monthly) for faster switching.
+ - Report now includes Binom-only revenue rows (when revenue > 0) even if there is no matching Rumble spend row, ensuring accurate revenue totals.
 
 ### Fixed
 - Accurate Rumble presence detection for a batch (`has_rumble`) now based on raw Rumble rows for the selected date range and report type.
+ - Table renders whenever there are any rows (including Binom-only), not only when Rumble data exists.
 
 ### Docs
 - README updated to reflect date-range based grouping on the combined report, header totals (Spent + Revenue), and navigation under "Rumble and Binom Reports Only".

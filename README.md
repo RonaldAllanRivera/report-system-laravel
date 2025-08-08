@@ -106,6 +106,7 @@ This Laravel 12 application lets you upload reports from Rumble and Binom, proce
   - For each account, an "Account Summary" row appears, followed by a spacer row for readability.
   - A grand SUMMARY row is shown at the bottom (`tfoot`).
 - Money formatting: Spend, Revenue, P/L, Daily Cap, CPM, and Set CPM display with a `$` sign.
+ - If Binom has revenue for a campaign and there is no matching Rumble spend, the row is still included (revenue-only) so totals remain accurate.
 
 ## Import Formats
 - Rumble Data (CSV): `Campaign`, `Spend`, `CPM`

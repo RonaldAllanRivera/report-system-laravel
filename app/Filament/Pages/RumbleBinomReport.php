@@ -95,6 +95,7 @@ class RumbleBinomReport extends Page
         }
 
         $rows = [];
+        $seen = [];
         foreach ($rumble as $rd) {
             $rdId = $id($rd->campaign);
             $keyName = $sanitize($rd->campaign);
@@ -120,6 +121,43 @@ class RumbleBinomReport extends Page
                 'roi' => $spend > 0 ? (($revenue / $spend) - 1.0) : null,
                 'conversions' => ($revenue > 0 ? max(1, $leads) : ($leads > 0 ? $leads : null)),
                 'cpm' => $spend > 0 ? $cpm : null,
+                'set_cpm' => $setCpm,
+            ];
+
+            // mark this campaign as seen (prefer id, fallback to sanitized name)
+            $seen[$rdId ?: $keyName] = true;
+        }
+
+        // Add Binom-only rows (revenue is most important) when no matching Rumble entry exists
+        foreach ($binom as $b) {
+            $rev = (float) ($b->revenue ?? 0);
+            if ($rev <= 0) {
+                continue; // safety guard, import already skips <= 0
+            }
+            $bid = $id($b->name ?? '');
+            $bKeyName = $sanitize($b->name ?? '');
+            $key = $bid ?: $bKeyName;
+            if (isset($seen[$key])) {
+                continue; // already represented by a Rumble row
+            }
+
+            $rc = $bid && isset($campaignById[$bid]) ? $campaignById[$bid] : ($campaignByName[$bKeyName] ?? null);
+
+            $account = $this->accountName($b->name);
+            $leads = (int) ($b->leads ?? 0);
+            $setCpm = $rc?->cpm !== null ? (float) $rc->cpm : null;
+            $dailyCap = $rc?->daily_limit !== null ? (int) $rc->daily_limit : null;
+
+            $rows[] = [
+                'account' => $account,
+                'campaign_name' => $b->name,
+                'daily_cap' => $dailyCap,
+                'spend' => 0.0,
+                'revenue' => $rev,
+                'pl' => $rev,
+                'roi' => null,
+                'conversions' => max(1, $leads),
+                'cpm' => null,
                 'set_cpm' => $setCpm,
             ];
         }
@@ -162,8 +200,9 @@ class RumbleBinomReport extends Page
                 'pl' => $totalRevenue - $totalSpend,
                 'roi' => $totalSpend > 0 ? (($totalRevenue / $totalSpend) - 1.0) : null,
             ],
-            // raw rumble presence for this range
+            // presence flags
             'has_rumble' => $rumble->count() > 0,
+            'has_rows' => count($rows) > 0,
         ];
     }
 
