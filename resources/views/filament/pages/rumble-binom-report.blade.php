@@ -27,7 +27,7 @@
         </div>
         @forelse($sections as $section)
             @php($report = $section['report'])
-            <div x-data="{ open: false }" class="rounded-lg border bg-white" wire:key="section-{{ $section['report_type'] }}-{{ $section['date_from'] }}-{{ $section['date_to'] }}">
+            <div x-data="{ open: false, copying: false, copyTable() { const table = this.$refs.tbl; if (!table) return; const rows = Array.from(table.querySelectorAll('thead tr, tbody tr, tfoot tr')); const lines = rows.map(tr => { const cells = Array.from(tr.querySelectorAll('th, td')); return cells.map(td => td.innerText.replace(/\s+/g, ' ').trim()).join('\t'); }); const tsv = lines.join('\n'); const fallbackCopy = (text) => { const ta = document.createElement('textarea'); ta.value = text; ta.style.position = 'fixed'; ta.style.top = '-1000px'; document.body.appendChild(ta); ta.focus(); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); }; (async () => { try { if (navigator.clipboard && window.isSecureContext) { await navigator.clipboard.writeText(tsv); } else { fallbackCopy(tsv); } this.copying = true; setTimeout(() => this.copying = false, 1200); } catch (e) { fallbackCopy(tsv); this.copying = true; setTimeout(() => this.copying = false, 1200); } })(); } }" class="rounded-lg border bg-white" wire:key="section-{{ $section['report_type'] }}-{{ $section['date_from'] }}-{{ $section['date_to'] }}">
                 <div @click="open = !open" class="flex items-center justify-between px-4 py-3 cursor-pointer">
                     <div class="font-medium text-gray-700">
                         {{ \Illuminate\Support\Carbon::parse($section['date_from'])->format('F j, Y') }} — {{ \Illuminate\Support\Carbon::parse($section['date_to'])->format('F j, Y') }}
@@ -38,12 +38,17 @@
                         <span class="font-semibold">{{ $this->fmtMoney($report['totals']['spend'] ?? 0) }} spent</span>
                         <span class="text-gray-400">·</span>
                         <span class="font-semibold">{{ $this->fmtMoney($report['totals']['revenue'] ?? 0) }} revenue</span>
+                        <button type="button" @click.stop="copyTable()" title="Copy this table to clipboard"
+                            class="ml-2 text-red-600 hover:text-red-700 font-semibold text-xs uppercase tracking-wide {{ $report['has_rows'] ? '' : 'opacity-40 pointer-events-none' }}">
+                            <span x-show="!copying">COPY TABLE</span>
+                            <span x-show="copying" class="text-green-600">COPIED</span>
+                        </button>
                         <svg x-bind:class="open ? 'rotate-180' : ''" class="h-4 w-4 transition-transform" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
                     </div>
                 </div>
                 <div x-show="open" x-collapse class="overflow-x-auto">
                     @if($report['has_rows'])
-                        <table class="min-w-full text-xs">
+                        <table x-ref="tbl" class="min-w-full text-xs">
                             <thead class="bg-gray-50">
                                 <tr class="text-left">
                                     <th class="px-3 py-2 font-medium text-gray-600">Account</th>

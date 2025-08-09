@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 - [ ] Add report export functionality (CSV/XLSX) with P/L and ROI formulas
 
+## [0.5.4] - 2025-08-09
+### Added
+- Rumble Binom Report: Added per-section red "COPY TABLE" button beside revenue. Copies the entire table (header, rows, footer) to clipboard as TSV. Works with Google Sheets/Excel paste. Implemented via Alpine.js with secure Clipboard API and fallback.
+
 ## [0.5.3] - 2025-08-08
 ### Changed
 - Grouped list pages now sort rows alphabetically (A→Z) within each date range group:

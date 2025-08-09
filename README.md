@@ -30,6 +30,7 @@ This Laravel 12 application lets you upload reports from Rumble and Binom, proce
   - Columns (10): Account, Campaign, Daily Cap, Spend, Revenue, P/L, ROI, Conversions, CPM, Set CPM
   - Within each date range, rows are grouped by Account with a per-account summary and an overall SUMMARY row
   - Alphabetically sorted A→Z by Account, and rows A→Z by Campaign
+  - Per-section COPY TABLE button to copy the entire table (header, body, footer) as TSV for Google Sheets/Excel
 - **Data Management**
   - Delete All
   - Delete by Upload Date (per day)
@@ -115,6 +116,7 @@ This Laravel 12 application lets you upload reports from Rumble and Binom, proce
   - A grand SUMMARY row is shown at the bottom (`tfoot`).
 - Money formatting: Spend, Revenue, P/L, Daily Cap, CPM, and Set CPM display with a `$` sign.
  - If Binom has revenue for a campaign and there is no matching Rumble spend, the row is still included (revenue-only) so totals remain accurate.
+ - Copy table: Click the red COPY TABLE button beside the revenue text in each section header to copy the full table to the clipboard (TSV). Paste directly into Google Sheets/Excel.
 
 ## Import Formats
 - Rumble Data (CSV): `Campaign`, `Spend`, `CPM`
