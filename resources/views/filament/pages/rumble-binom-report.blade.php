@@ -142,6 +142,10 @@
     const colCount = headRow ? Array.from(headRow.cells).reduce((a,c)=>a+(c.colSpan||1),0) : 10;
     const rows = Array.from(table.querySelectorAll('thead tr, tbody tr, tfoot tr'));
     const moneyToNum = s => (s||'').replace(/[^0-9.\-]/g,'');
+    const escapeHtml = (s) => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    const headHtmlRows = [];
+    const bodyHtmlRows = [];
+    const footHtmlRows = [];
     // Track per-account ranges and account summary rows
     let groupStartRow = null; // first data rowNumber in current account group
     let groupEndRow = null;   // last data rowNumber in current account group
@@ -166,10 +170,15 @@
         accountSummaryRows.push(rowNumber);
       }
       const out = new Array(colCount).fill('');
+      // Build HTML row in parallel (to preserve formatting)
+      const boldRow = (isAccountSummary || isSummaryRow);
+      let htmlRow = `<tr${boldRow ? ' style="font-weight:600;"' : ''}>`;
+      const htmlCells = [];
       let ci = 0;
       cells.forEach(td => {
         const span = td.colSpan || 1;
         const raw = (td.innerText||'').replace(/\s+/g,' ').trim();
+        const tdBg = (td && td.style && td.style.backgroundColor) ? td.style.backgroundColor : '';
         for (let i=0; i<span && ci<colCount; i++) {
           if (i===0) {
             let val = raw;
@@ -209,10 +218,30 @@
               }
             }
             out[ci] = val;
+
+            // HTML cell build (respect formatting)
+            const tag = isHead ? 'th' : 'td';
+            let cellStyle = '';
+            if (tdBg) cellStyle += `background-color:${tdBg};`;
+            if ((isAccountSummary || isSummaryRow) && ci === 1) cellStyle += 'font-style:italic;';
+            const col = ci + 1;
+            // Use formulas in HTML for formula-bearing cells; otherwise keep displayed text
+            const isFormulaCell = (!isHead && (
+              col===6 || col===7 ||
+              (isAccountSummary && (col===4 || col===5)) ||
+              (isSummaryRow && (col===4 || col===5))
+            ));
+            const htmlVal = isHead ? raw : (isFormulaCell ? val : raw);
+            const escaped = escapeHtml(htmlVal);
+            const labelBoldItalic = (!isHead && (isAccountSummary || isSummaryRow) && ci === 1);
+            const content = labelBoldItalic ? `<b><i>${escaped}</i></b>` : escaped;
+            htmlCells.push(`<${tag}${span>1 ? ` colspan="${span}"` : ''}${cellStyle ? ` style="${cellStyle}"` : ''}>${content}</${tag}>`);
           }
           ci++;
         }
       });
+      htmlRow += htmlCells.join('') + '</tr>';
+      if (isHead) headHtmlRows.push(htmlRow); else if (isFoot) footHtmlRows.push(htmlRow); else bodyHtmlRows.push(htmlRow);
       // After writing an Account Summary row, reset group range for next account
       if (isAccountSummary) {
         groupStartRow = null;
@@ -221,7 +250,10 @@
       return out.join('\t');
     });
     const tsv = lines.join('\n');
-    const fallbackCopy = (text) => {
+    // Some paste targets ignore <tfoot>; include summary rows inside <tbody> to ensure they paste
+    const allBodyRows = bodyHtmlRows.concat(footHtmlRows);
+    const html = `<table>${headHtmlRows.length?`<thead>${headHtmlRows.join('')}</thead>`:''}${allBodyRows.length?`<tbody>${allBodyRows.join('')}</tbody>`:''}</table>`;
+    const fallbackCopyText = (text) => {
       const ta = document.createElement('textarea');
       ta.value = text;
       ta.style.position = 'fixed';
@@ -232,15 +264,36 @@
       document.execCommand('copy');
       document.body.removeChild(ta);
     };
+    const fallbackCopyMixed = () => {
+      const onCopy = (e) => {
+        try {
+          e.clipboardData.setData('text/html', html);
+          e.clipboardData.setData('text/plain', tsv);
+          e.preventDefault();
+        } catch(_) {}
+      };
+      document.addEventListener('copy', onCopy, { once: true });
+      document.execCommand('copy');
+    };
     (async () => {
       try {
-        if (navigator.clipboard && window.isSecureContext) {
+        if (navigator.clipboard && window.ClipboardItem) {
+          const item = new ClipboardItem({
+            'text/plain': new Blob([tsv], { type: 'text/plain' }),
+            'text/html': new Blob([html], { type: 'text/html' })
+          });
+          await navigator.clipboard.write([item]);
+        } else if (navigator.clipboard && window.isSecureContext && navigator.clipboard.writeText) {
+          // Fallback: copy plain TSV if rich copy is not supported
           await navigator.clipboard.writeText(tsv);
         } else {
-          fallbackCopy(tsv);
+          // Last resort: use copy event to set both HTML and plain text
+          try { fallbackCopyMixed(); }
+          catch(_) { fallbackCopyText(tsv); }
         }
       } catch (e) {
-        fallbackCopy(tsv);
+        try { fallbackCopyMixed(); }
+        catch(_) { fallbackCopyText(tsv); }
       }
     })();
   };

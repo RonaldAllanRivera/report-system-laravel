@@ -1,3 +1,12 @@
+## [0.5.5] - 2025-08-09
+### Added
+- COPY TABLE now writes both TSV (formulas) and HTML (formatting) to the clipboard.
+- HTML paste keeps formatting: bold Account Summary/SUMMARY rows, italic label cell, and conditional backgrounds for P/L/ROI.
+- SUMMARY row is guaranteed to paste by including it inside `<tbody>` in the clipboard HTML (onscreen table still uses `<tfoot>`).
+- Label cells (column B) for "Account Summary" and "SUMMARY" are bold+italic in clipboard HTML.
+### Fixed
+- Ensured rich copy fallback behavior (copy event) sets both text/html and text/plain when ClipboardItem isn't available.
+
 # Changelog
 
 All notable changes to this project will be documented in this file.

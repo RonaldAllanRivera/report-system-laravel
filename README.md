@@ -31,21 +31,18 @@ This Laravel 12 application lets you upload reports from Rumble and Binom, proce
   - Within each date range, rows are grouped by Account with a per-account summary and an overall SUMMARY row
   - Alphabetically sorted A→Z by Account, and rows A→Z by Campaign
   - Per-section COPY TABLE button to copy the entire table (header, body, footer) as TSV for Google Sheets/Excel
-  - COPY TABLE includes formulas for `P/L` and `ROI` on all data rows, Account Summary rows, and the SUMMARY row
-    - P/L formula: `=E{row}-D{row}`
-    - ROI formula: `=(E{row}/D{row})-1`
-    - Formulas are inserted only when the target cell is not empty
-    - Account Summary formulas (per account):
-      - Spend (column D): `=SUM(D{firstDataRow}:D{lastDataRow})`
-      - Revenue (column E): `=SUM(E{firstDataRow}:E{lastDataRow})`
-    - Bottom SUMMARY formulas (across all accounts):
-      - Spend (column D): `=D{acct1Row}+D{acct2Row}+...`
-      - Revenue (column E): `=E{acct1Row}+E{acct2Row}+...`
-    - The above are generated dynamically to support many accounts (e.g., up to 20+ account groups)
+  - COPY TABLE:
+    - Copies both TSV (with formulas) and HTML (with formatting) to the clipboard
+    - HTML paste preserves formatting: bold Account Summary/SUMMARY rows, italic label cell, and conditional backgrounds for P/L/ROI (positive `#a3da9d`, negative `#ff8080`)
+    - SUMMARY row is explicitly included by placing the summary row inside `<tbody>` in the clipboard HTML (on-screen DOM still uses `<tfoot>`)
+    - Formulas are preserved in both TSV and HTML for P/L, ROI, Account Summary (Spend/Revenue), and SUMMARY (Spend/Revenue)
+    - Injects formulas for P/L and ROI columns (data rows, Account Summary rows, and SUMMARY row) for Google Sheets/Excel paste
+    - Dynamic formulas for Account Summary Spend/Revenue (sums over each account's data rows) and for the bottom SUMMARY row (sums all Account Summaries), supporting any number of accounts
   - UI formatting:
     - Account Summary rows and the bottom SUMMARY row are bold.
     - P/L and ROI cells have conditional backgrounds: positive `#a3da9d`, negative `#ff8080` (zero/empty = default background).
     - Implemented via inline styles (not Tailwind bg classes) to satisfy IDE lints.
+    - Clipboard HTML also bold+italicizes the "Account Summary" and "SUMMARY" labels in column B.
 - **Data Management**
   - Delete All
   - Delete by Upload Date (per day)
