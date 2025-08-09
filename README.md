@@ -35,6 +35,13 @@ This Laravel 12 application lets you upload reports from Rumble and Binom, proce
     - P/L formula: `=E{row}-D{row}`
     - ROI formula: `=(E{row}/D{row})-1`
     - Formulas are inserted only when the target cell is not empty
+    - Account Summary formulas (per account):
+      - Spend (column D): `=SUM(D{firstDataRow}:D{lastDataRow})`
+      - Revenue (column E): `=SUM(E{firstDataRow}:E{lastDataRow})`
+    - Bottom SUMMARY formulas (across all accounts):
+      - Spend (column D): `=D{acct1Row}+D{acct2Row}+...`
+      - Revenue (column E): `=E{acct1Row}+E{acct2Row}+...`
+    - The above are generated dynamically to support many accounts (e.g., up to 20+ account groups)
 - **Data Management**
   - Delete All
   - Delete by Upload Date (per day)

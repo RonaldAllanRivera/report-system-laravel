@@ -140,10 +140,29 @@
     const colCount = headRow ? Array.from(headRow.cells).reduce((a,c)=>a+(c.colSpan||1),0) : 10;
     const rows = Array.from(table.querySelectorAll('thead tr, tbody tr, tfoot tr'));
     const moneyToNum = s => (s||'').replace(/[^0-9.\-]/g,'');
+    // Track per-account ranges and account summary rows
+    let groupStartRow = null; // first data rowNumber in current account group
+    let groupEndRow = null;   // last data rowNumber in current account group
+    const accountSummaryRows = []; // rowNumbers of each Account Summary row
+
     const lines = rows.map((tr, idx) => {
       const rowNumber = idx + 1; // first output row is 1 (header)
       const isHead = tr.parentElement && tr.parentElement.tagName.toLowerCase()==='thead';
       const cells = Array.from(tr.cells);
+      const parentTag = tr.parentElement ? tr.parentElement.tagName.toLowerCase() : '';
+      const secondText = (cells[1] ? (cells[1].innerText||'') : '').replace(/\s+/g,' ').trim();
+      const isAccountSummary = !isHead && parentTag==='tbody' && secondText.toLowerCase()==='account summary';
+      const isSpacer = !isHead && parentTag==='tbody' && cells.length===1 && ((cells[0].colSpan||1)>= (headRow ? headRow.cells.length : 10));
+      const isFoot = parentTag==='tfoot';
+      const isSummaryRow = isFoot && secondText.toLowerCase()==='summary';
+      const isDataRow = !isHead && !isAccountSummary && !isSpacer && !isFoot;
+      if (isDataRow) {
+        if (groupStartRow === null) groupStartRow = rowNumber;
+        groupEndRow = rowNumber;
+      }
+      if (isAccountSummary) {
+        accountSummaryRows.push(rowNumber);
+      }
       const out = new Array(colCount).fill('');
       let ci = 0;
       cells.forEach(td => {
@@ -166,12 +185,37 @@
               if (col===7) {
                 val = raw ? `=(E${rowNumber}/D${rowNumber})-1` : '';
               }
+              // Account Summary Spend/Revenue formulas over the group's data rows
+              if (isAccountSummary && groupStartRow !== null && groupEndRow !== null) {
+                if (col===4) { // Spend
+                  val = `=SUM(D${groupStartRow}:D${groupEndRow})`;
+                }
+                if (col===5) { // Revenue
+                  val = `=SUM(E${groupStartRow}:E${groupEndRow})`;
+                }
+              }
+              // Bottom SUMMARY row: sum all Account Summary cells in D/E
+              if (isSummaryRow && accountSummaryRows.length) {
+                if (col===4) {
+                  const dRefs = accountSummaryRows.map(r => `D${r}`).join('+');
+                  val = dRefs ? `=${dRefs}` : val;
+                }
+                if (col===5) {
+                  const eRefs = accountSummaryRows.map(r => `E${r}`).join('+');
+                  val = eRefs ? `=${eRefs}` : val;
+                }
+              }
             }
             out[ci] = val;
           }
           ci++;
         }
       });
+      // After writing an Account Summary row, reset group range for next account
+      if (isAccountSummary) {
+        groupStartRow = null;
+        groupEndRow = null;
+      }
       return out.join('\t');
     });
     const tsv = lines.join('\n');
