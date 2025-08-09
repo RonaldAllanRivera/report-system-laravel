@@ -51,16 +51,16 @@
                         <table x-ref="tbl" class="min-w-full text-xs">
                             <thead class="bg-gray-50">
                                 <tr class="text-left">
-                                    <th class="px-3 py-2 font-medium text-gray-600">Account</th>
-                                    <th class="px-3 py-2 font-medium text-gray-600">Campaign</th>
-                                    <th class="px-3 py-2 font-medium text-gray-600">Daily Cap</th>
-                                    <th class="px-3 py-2 font-medium text-gray-600">Spend</th>
-                                    <th class="px-3 py-2 font-medium text-gray-600">Revenue</th>
+                                    <th class="px-3 py-2 font-medium text-gray-600">ACCOUNT NAME</th>
+                                    <th class="px-3 py-2 font-medium text-gray-600">CAMPAIGN NAME</th>
+                                    <th class="px-3 py-2 font-medium text-gray-600">DAILY CAP</th>
+                                    <th class="px-3 py-2 font-medium text-gray-600">SPEND</th>
+                                    <th class="px-3 py-2 font-medium text-gray-600">REVENUE</th>
                                     <th class="px-3 py-2 font-medium text-gray-600">P/L</th>
                                     <th class="px-3 py-2 font-medium text-gray-600">ROI</th>
-                                    <th class="px-3 py-2 font-medium text-gray-600">Conv.</th>
+                                    <th class="px-3 py-2 font-medium text-gray-600">CONVERSIONS</th>
                                     <th class="px-3 py-2 font-medium text-gray-600">CPM</th>
-                                    <th class="px-3 py-2 font-medium text-gray-600">Set CPM</th>
+                                    <th class="px-3 py-2 font-medium text-gray-600">SET CPM</th>
                                 </tr>
                             </thead>
                             <tbody>
