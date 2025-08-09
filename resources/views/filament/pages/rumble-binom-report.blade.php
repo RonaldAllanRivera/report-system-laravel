@@ -27,7 +27,7 @@
         </div>
         @forelse($sections as $section)
             @php($report = $section['report'])
-            <div x-data="{ open: false, copying: false, copyTable() { const table = this.$refs.tbl; if (!table) return; const rows = Array.from(table.querySelectorAll('thead tr, tbody tr, tfoot tr')); const lines = rows.map(tr => { const cells = Array.from(tr.querySelectorAll('th, td')); return cells.map(td => td.innerText.replace(/\s+/g, ' ').trim()).join('\t'); }); const tsv = lines.join('\n'); const fallbackCopy = (text) => { const ta = document.createElement('textarea'); ta.value = text; ta.style.position = 'fixed'; ta.style.top = '-1000px'; document.body.appendChild(ta); ta.focus(); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); }; (async () => { try { if (navigator.clipboard && window.isSecureContext) { await navigator.clipboard.writeText(tsv); } else { fallbackCopy(tsv); } this.copying = true; setTimeout(() => this.copying = false, 1200); } catch (e) { fallbackCopy(tsv); this.copying = true; setTimeout(() => this.copying = false, 1200); } })(); } }" class="rounded-lg border bg-white" wire:key="section-{{ $section['report_type'] }}-{{ $section['date_from'] }}-{{ $section['date_to'] }}">
+            <div x-data="{ open: false, copying: false }" class="rounded-lg border bg-white" wire:key="section-{{ $section['report_type'] }}-{{ $section['date_from'] }}-{{ $section['date_to'] }}">
                 <div @click="open = !open" class="flex items-center justify-between px-4 py-3 cursor-pointer">
                     <div class="font-medium text-gray-700">
                         {{ \Illuminate\Support\Carbon::parse($section['date_from'])->format('F j, Y') }} — {{ \Illuminate\Support\Carbon::parse($section['date_to'])->format('F j, Y') }}
@@ -38,7 +38,7 @@
                         <span class="font-semibold">{{ $this->fmtMoney($report['totals']['spend'] ?? 0) }} spent</span>
                         <span class="text-gray-400">·</span>
                         <span class="font-semibold">{{ $this->fmtMoney($report['totals']['revenue'] ?? 0) }} revenue</span>
-                        <button type="button" @click.stop="copyTable()" title="Copy this table to clipboard"
+                        <button type="button" @click.stop="RB_copyTable($refs.tbl); copying = true; setTimeout(()=>copying=false, 1200)" title="Copy this table to clipboard"
                             class="ml-2 text-red-600 hover:text-red-700 font-semibold text-xs uppercase tracking-wide {{ $report['has_rows'] ? '' : 'opacity-40 pointer-events-none' }}">
                             <span x-show="!copying">COPY TABLE</span>
                             <span x-show="copying" class="text-green-600">COPIED</span>
@@ -132,3 +132,70 @@
         </div>
     </x-slot>
 </x-filament-panels::page>
+
+<script>
+  window.RB_copyTable = window.RB_copyTable || function(table) {
+    if (!table) return;
+    const headRow = table.querySelector('thead tr');
+    const colCount = headRow ? Array.from(headRow.cells).reduce((a,c)=>a+(c.colSpan||1),0) : 10;
+    const rows = Array.from(table.querySelectorAll('thead tr, tbody tr, tfoot tr'));
+    const moneyToNum = s => (s||'').replace(/[^0-9.\-]/g,'');
+    const lines = rows.map((tr, idx) => {
+      const rowNumber = idx + 1; // first output row is 1 (header)
+      const isHead = tr.parentElement && tr.parentElement.tagName.toLowerCase()==='thead';
+      const cells = Array.from(tr.cells);
+      const out = new Array(colCount).fill('');
+      let ci = 0;
+      cells.forEach(td => {
+        const span = td.colSpan || 1;
+        const raw = (td.innerText||'').replace(/\s+/g,' ').trim();
+        for (let i=0; i<span && ci<colCount; i++) {
+          if (i===0) {
+            let val = raw;
+            if (!isHead) {
+              const col = ci + 1; // 1-indexed column
+              // Normalize numeric $ columns
+              if (col===3 || col===4 || col===5 || col===9 || col===10) {
+                val = moneyToNum(val) || '';
+              }
+              // P/L formula (col 6) => =E{row}-D{row}; skip if this cell is empty
+              if (col===6) {
+                val = raw ? `=E${rowNumber}-D${rowNumber}` : '';
+              }
+              // ROI formula (col 7) => =(E{row}/D{row})-1; skip if this cell is empty
+              if (col===7) {
+                val = raw ? `=(E${rowNumber}/D${rowNumber})-1` : '';
+              }
+            }
+            out[ci] = val;
+          }
+          ci++;
+        }
+      });
+      return out.join('\t');
+    });
+    const tsv = lines.join('\n');
+    const fallbackCopy = (text) => {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.top = '-1000px';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+    };
+    (async () => {
+      try {
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(tsv);
+        } else {
+          fallbackCopy(tsv);
+        }
+      } catch (e) {
+        fallbackCopy(tsv);
+      }
+    })();
+  };
+</script>

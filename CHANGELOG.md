@@ -8,6 +8,8 @@ All notable changes to this project will be documented in this file.
 ## [0.5.4] - 2025-08-09
 ### Added
 - Rumble Binom Report: Added per-section red "COPY TABLE" button beside revenue. Copies the entire table (header, rows, footer) to clipboard as TSV. Works with Google Sheets/Excel paste. Implemented via Alpine.js with secure Clipboard API and fallback.
+- COPY TABLE now injects formulas for `P/L` and `ROI` on all data rows, Account Summary rows, and the bottom SUMMARY row, so pasted sheets compute automatically.
+  - Formula details: `P/L = E{row}-D{row}`, `ROI = (E{row}/D{row})-1`. Formulas are only inserted for non-empty cells to avoid stray errors.
 
 ## [0.5.3] - 2025-08-08
 ### Changed

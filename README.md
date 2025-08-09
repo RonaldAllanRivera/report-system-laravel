@@ -31,6 +31,10 @@ This Laravel 12 application lets you upload reports from Rumble and Binom, proce
   - Within each date range, rows are grouped by Account with a per-account summary and an overall SUMMARY row
   - Alphabetically sorted A→Z by Account, and rows A→Z by Campaign
   - Per-section COPY TABLE button to copy the entire table (header, body, footer) as TSV for Google Sheets/Excel
+  - COPY TABLE includes formulas for `P/L` and `ROI` on all data rows, Account Summary rows, and the SUMMARY row
+    - P/L formula: `=E{row}-D{row}`
+    - ROI formula: `=(E{row}/D{row})-1`
+    - Formulas are inserted only when the target cell is not empty
 - **Data Management**
   - Delete All
   - Delete by Upload Date (per day)
@@ -116,7 +120,7 @@ This Laravel 12 application lets you upload reports from Rumble and Binom, proce
   - A grand SUMMARY row is shown at the bottom (`tfoot`).
 - Money formatting: Spend, Revenue, P/L, Daily Cap, CPM, and Set CPM display with a `$` sign.
  - If Binom has revenue for a campaign and there is no matching Rumble spend, the row is still included (revenue-only) so totals remain accurate.
- - Copy table: Click the red COPY TABLE button beside the revenue text in each section header to copy the full table to the clipboard (TSV). Paste directly into Google Sheets/Excel.
+ - Copy table: Click the red COPY TABLE button beside the revenue text in each section header to copy the full table to the clipboard (TSV). Paste directly into Google Sheets/Excel. Copied table preserves formulas for `P/L` and `ROI` columns on data rows, Account Summary rows, and the bottom SUMMARY row. Formula details: `P/L = E{row}-D{row}`, `ROI = (E{row}/D{row})-1`. Formulas are only injected when the destination cell is not empty.
 
 ## Import Formats
 - Rumble Data (CSV): `Campaign`, `Spend`, `CPM`
