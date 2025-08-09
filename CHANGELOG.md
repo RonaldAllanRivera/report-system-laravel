@@ -14,6 +14,22 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 - [ ] Add report export functionality (CSV/XLSX) with P/L and ROI formulas
 
+## [0.5.6] - 2025-08-09
+### Added
+- Google Data feature (weekly/monthly only):
+  - Model `GoogleData`, migration `google_data` table
+  - Filament resource + grouped list page (`/admin/google-datas`)
+  - CSV upload (Account name, Campaign, Cost), optional one-line date range auto-detect
+  - Groups by `date_from|date_to|report_type`; rows sorted A→Z by Account, then A→Z by Campaign
+- Per-group delete + global delete actions for Google Data (All, by Upload Date, by Date Category)
+
+### Changed
+- Navigation: Google Data appears under Filament group `Google and Binom Reports Only` as "1. Google Data"
+
+### Docs
+- README: Portfolio-ready Overview copy focused on business impact, UX, and pragmatic engineering
+- README: Added Google Data feature details, usage instructions, navigation group, and import format
+
 ## [0.5.4] - 2025-08-09
 ### Added
 - Rumble Binom Report: Added per-section red "COPY TABLE" button beside revenue. Copies the entire table (header, rows, footer) to clipboard as TSV. Works with Google Sheets/Excel paste. Implemented via Alpine.js with secure Clipboard API and fallback.

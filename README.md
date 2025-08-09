@@ -1,10 +1,19 @@
 # Rumble + Binom Report System (CSV/JSON Upload)
 
 ## Overview
-This Laravel 12 application lets you upload reports from Rumble and Binom, processes them, and shows grouped, filterable admin views. No API needed—upload CSV/JSON and get insights.
+Modern, API-free performance marketing reporting. This Laravel 12 app ingests CSV/JSON exports (no 3rd‑party API keys), normalizes multiple ad network datasets, and renders fast, reliable admin dashboards with spreadsheet‑friendly tables.
+
+Why it stands out:
+- Business impact: turns raw exports into actionable daily/weekly/monthly insights in minutes.
+- Strong UX: Filament Admin, collapsible grouped views, and one‑click “COPY TABLE” to Google Sheets/Excel (with formulas).
+- Pragmatic engineering: resilient parsers, strict date‑range joins, and alphabetic sorting for consistent operations.
 
 ## Features
 - **Filament Admin Panel** (free)
+- **Google Data (CSV)**
+  - Parses Account name, Campaign, Cost
+  - Weekly/Monthly reports only (date presets end at yesterday); optional one‑line date range auto‑detect
+  - Grouped by date range + type with per‑group delete; sorted A→Z by Account, then A→Z by Campaign
 - **Rumble Data (CSV)**
   - Parses Campaign, Spend, CPM
   - Date presets and report type (daily/weekly/monthly)
@@ -100,6 +109,7 @@ This Laravel 12 application lets you upload reports from Rumble and Binom, proce
 
 ## Usage
 - Log in to Filament Admin
+- Google Data: upload CSV (Account name, Campaign, Cost); Weekly/Monthly only; presets end at yesterday; optional one‑line date range auto‑detect (e.g., "28 July 2025 - 3 August 2025")
 - Rumble Data: upload CSV (Campaign, Spend, CPM)
 - Binom Rumble Spent Data: upload CSV with columns `Name;Leads;Revenue` (quoted, semicolon-delimited)
   - Revenue like `170.00 $` is stored as `170.00`; rows with `0.00 $` are ignored
@@ -117,6 +127,8 @@ This Laravel 12 application lets you upload reports from Rumble and Binom, proce
   2. Rumble Campaign Data
   3. Binom Rumble Spent Data
   4. Rumble Binom Report
+- Additional group: `Google and Binom Reports Only`
+  1. Google Data
 
 ### Combined Report (Rumble - Binom Report)
 - Navigate: `Rumble and Binom Reports Only` → `4. Rumble Binom Report`
@@ -131,6 +143,7 @@ This Laravel 12 application lets you upload reports from Rumble and Binom, proce
  - Copy table: Click the red COPY TABLE button beside the revenue text in each section header to copy the full table to the clipboard (TSV). Paste directly into Google Sheets/Excel. Copied table preserves formulas for `P/L` and `ROI` columns on data rows, Account Summary rows, and the bottom SUMMARY row. Formula details: `P/L = E{row}-D{row}`, `ROI = (E{row}/D{row})-1`. Formulas are only injected when the destination cell is not empty.
 
 ## Import Formats
+- Google Data (CSV): `Account name`, `Campaign`, `Cost`
 - Rumble Data (CSV): `Campaign`, `Spend`, `CPM`
 - Binom Rumble Spent Data (CSV): `Name`, `Leads`, `Revenue` (semicolon `;` delimited, quoted)
 - Rumble Campaign Data (JSON): `header` + `body` arrays with columns `Name`, `CPM`, `Used / Daily Limit`
