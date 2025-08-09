@@ -42,6 +42,10 @@ This Laravel 12 application lets you upload reports from Rumble and Binom, proce
       - Spend (column D): `=D{acct1Row}+D{acct2Row}+...`
       - Revenue (column E): `=E{acct1Row}+E{acct2Row}+...`
     - The above are generated dynamically to support many accounts (e.g., up to 20+ account groups)
+  - UI formatting:
+    - Account Summary rows and the bottom SUMMARY row are bold.
+    - P/L and ROI cells have conditional backgrounds: positive `#a3da9d`, negative `#ff8080` (zero/empty = default background).
+    - Implemented via inline styles (not Tailwind bg classes) to satisfy IDE lints.
 - **Data Management**
   - Delete All
   - Delete by Upload Date (per day)

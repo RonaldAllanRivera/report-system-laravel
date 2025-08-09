@@ -11,6 +11,7 @@ All notable changes to this project will be documented in this file.
 - COPY TABLE now injects formulas for `P/L` and `ROI` on all data rows, Account Summary rows, and the bottom SUMMARY row, so pasted sheets compute automatically.
   - Formula details: `P/L = E{row}-D{row}`, `ROI = (E{row}/D{row})-1`. Formulas are only inserted for non-empty cells to avoid stray errors.
   - Account Summary rows compute Spend/Revenue as dynamic `SUM` across each account's data rows; the bottom SUMMARY sums all Account Summary Spend/Revenue cells for the final totals. Supports many accounts.
+ - UI: Account Summary and the bottom SUMMARY rows are bold; P/L and ROI cells have conditional backgrounds (positive `#a3da9d`, negative `#ff8080`). Implemented via inline styles (not Tailwind bg classes) to satisfy IDE lints.
 
 ## [0.5.3] - 2025-08-08
 ### Changed
