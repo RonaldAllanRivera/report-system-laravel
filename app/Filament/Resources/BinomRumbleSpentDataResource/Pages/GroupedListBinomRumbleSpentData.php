@@ -16,6 +16,17 @@ class GroupedListBinomRumbleSpentData extends Page
     protected function getHeaderActions(): array
     {
         return [
+            Actions\Action::make('binomExportInfo')
+                ->label('Info')
+                ->icon('heroicon-o-information-circle')
+                ->color('gray')
+                ->size('sm')
+                ->extraAttributes(['class' => 'w-auto text-xs'])
+                ->tooltip('How to export CSV from Binom')
+                ->modalHeading('Binom CSV Export Settings')
+                ->modalSubmitAction(false)
+                ->modalCancelActionLabel('Close')
+                ->modalContent(view('filament.resources.binom-rumble-spent-data-resource.partials.binom-export-info')),
             Actions\Action::make('uploadBinomCsv')
                 ->label('Upload Binom Rumble Spent CSV')
                 ->icon('heroicon-o-arrow-up-tray')

@@ -25,6 +25,8 @@ Why it stands out:
   - Normalizes headers (handles quoted headers and UTF-8 BOM)
   - Date presets and report type (daily/weekly/monthly)
   - Grouped by date range with per-range delete; names sorted A→Z; summary revenue
+  - Info icon in header opens a modal with a screenshot of the required Binom CSV export settings (for future reference)
+    - Image location: `public/images/rumble-binom-info.jpg` (served via `asset('images/rumble-binom-info.jpg')`)
 - **Rumble Campaign Data (JSON)**
   - Parses Name, CPM, Used/Daily Limit (extracts only the limit value; Unlimited → null)
   - Robust header normalization (works with scraped headers)

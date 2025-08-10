@@ -39,6 +39,14 @@ All notable changes to this project will be documented in this file.
 ### Docs
 - README: Documented base-name and substring fallback strategy in the Combined Report section.
 
+## [0.5.8] - 2025-08-10
+### Added
+- Binom Rumble Spent Data page: Info icon in header showing a modal with the screenshot of required Binom CSV export settings.
+  - Blade partial: `resources/views/filament/resources/binom-rumble-spent-data-resource/partials/binom-export-info.blade.php`
+  - Image placed at `public/images/rumble-binom-info.jpg` and referenced via `asset('images/rumble-binom-info.jpg')`.
+### Docs
+- README: Mentioned Info icon, modal, and image asset location for future reference.
+
 ## [0.5.4] - 2025-08-09
 ### Added
 - Rumble Binom Report: Added per-section red "COPY TABLE" button beside revenue. Copies the entire table (header, rows, footer) to clipboard as TSV. Works with Google Sheets/Excel paste. Implemented via Alpine.js with secure Clipboard API and fallback.
