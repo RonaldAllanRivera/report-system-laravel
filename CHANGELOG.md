@@ -30,6 +30,15 @@ All notable changes to this project will be documented in this file.
 - README: Portfolio-ready Overview copy focused on business impact, UX, and pragmatic engineering
 - README: Added Google Data feature details, usage instructions, navigation group, and import format
 
+## [0.5.7] - 2025-08-10
+### Fixed
+- Rumble Binom Report: Daily Cap and Set CPM sometimes empty when campaign ID missing in `Rumble Campaign Data` due to text truncation.
+  - Added fallback matching after ID and sanitized-name: base-name (ID-stripped) exact match, then substring contains match (either direction).
+  - New helper `baseName()` trims ID tokens like `250730_07` and short suffixes (e.g., `- MR`) so campaigns such as `Tactical Windshield Tool - US - Angle1 - 250730_07 - MR` match `Tactical Windshield Tool - US - Angle1`.
+  - Applied to both Rumble rows and Binom-only rows, so Daily Cap/Set CPM populate whenever present in Campaign Data.
+### Docs
+- README: Documented base-name and substring fallback strategy in the Combined Report section.
+
 ## [0.5.4] - 2025-08-09
 ### Added
 - Rumble Binom Report: Added per-section red "COPY TABLE" button beside revenue. Copies the entire table (header, rows, footer) to clipboard as TSV. Works with Google Sheets/Excel paste. Implemented via Alpine.js with secure Clipboard API and fallback.

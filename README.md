@@ -36,6 +36,8 @@ Why it stands out:
   - Campaign identity resolution:
     - First tries ID patterns: `NNNNNN_NN` (e.g., `250731_04`), fallback `NNNNNN`
     - Falls back to sanitized name match (trim, collapse spaces, strip trailing parentheses)
+    - If still not found, tries base-name match (ID-stripped). Example: trims `- 250730_07 - MR` to compare `Tactical Windshield Tool - US - Angle1`.
+    - Last-resort: substring contains match on base names (either direction) to handle Rumble text truncation. Ensures Daily Cap and Set CPM populate when IDs are missing in Campaign Data.
   - Columns (10): Account, Campaign, Daily Cap, Spend, Revenue, P/L, ROI, Conversions, CPM, Set CPM
   - Within each date range, rows are grouped by Account with a per-account summary and an overall SUMMARY row
   - Alphabetically sorted A→Z by Account, and rows A→Z by Campaign

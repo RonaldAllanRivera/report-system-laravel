@@ -75,14 +75,18 @@ class RumbleBinomReport extends Page
         // Index helpers
         $id = fn (string $s) => $this->extractId($s);
         $sanitize = fn (?string $s) => $this->sanitizeName($s ?? '');
+        $base = fn (?string $s) => $this->baseName($s ?? '');
 
-        // Index Rumble Campaign Data by id and sanitized name
+        // Index Rumble Campaign Data by id, sanitized name, and base name (id-stripped)
         $campaignById = [];
         $campaignByName = [];
+        $campaignByBase = [];
         foreach ($campaign as $rc) {
             $key = $id($rc->name);
             if ($key) $campaignById[$key] = $rc;
             $campaignByName[$sanitize($rc->name)] = $rc;
+            $bkey = $base($rc->name);
+            if ($bkey !== '') $campaignByBase[$bkey] = $rc;
         }
 
         // Index Binom by id and sanitized name
@@ -99,8 +103,24 @@ class RumbleBinomReport extends Page
         foreach ($rumble as $rd) {
             $rdId = $id($rd->campaign);
             $keyName = $sanitize($rd->campaign);
+            $keyBase = $base($rd->campaign);
 
-            $rc = $rdId && isset($campaignById[$rdId]) ? $campaignById[$rdId] : ($campaignByName[$keyName] ?? null);
+            // 1) Try by ID, 2) sanitized exact name, 3) base-name (ID-stripped), 4) substring contains fallback
+            $rc = $rdId && isset($campaignById[$rdId]) ? $campaignById[$rdId]
+                : ($campaignByName[$keyName] ?? null);
+            if (!$rc) {
+                $rc = $campaignByBase[$keyBase] ?? null;
+            }
+            if (!$rc && $keyBase !== '') {
+                // last-resort: find any base that contains our base or vice versa
+                foreach ($campaignByBase as $bkey => $candidate) {
+                    if (str_contains($bkey, $keyBase) || str_contains($keyBase, $bkey)) {
+                        $rc = $candidate;
+                        break;
+                    }
+                }
+            }
+
             $b = $rdId && isset($binomById[$rdId]) ? $binomById[$rdId] : ($binomByName[$keyName] ?? null);
 
             $account = $this->accountName($b?->name ?: $rd->campaign);
@@ -141,7 +161,21 @@ class RumbleBinomReport extends Page
                 continue; // already represented by a Rumble row
             }
 
-            $rc = $bid && isset($campaignById[$bid]) ? $campaignById[$bid] : ($campaignByName[$bKeyName] ?? null);
+            // For Binom-only rows, also try base-name and substring fallback
+            $bBase = $base($b->name ?? '');
+            $rc = $bid && isset($campaignById[$bid]) ? $campaignById[$bid]
+                : ($campaignByName[$bKeyName] ?? null);
+            if (!$rc) {
+                $rc = $campaignByBase[$bBase] ?? null;
+            }
+            if (!$rc && $bBase !== '') {
+                foreach ($campaignByBase as $bb => $candidate) {
+                    if (str_contains($bb, $bBase) || str_contains($bBase, $bb)) {
+                        $rc = $candidate;
+                        break;
+                    }
+                }
+            }
 
             $account = $this->accountName($b->name);
             $leads = (int) ($b->leads ?? 0);
@@ -272,6 +306,20 @@ class RumbleBinomReport extends Page
         // Remove trailing domain in parentheses and normalize spaces
         $s = preg_replace('/\s*\([^)]*\)\s*$/', '', $s);
         return trim(preg_replace('/\s+/', ' ', $s));
+    }
+
+    /**
+     * Produces a base campaign string without embedded numeric IDs or trailing short codes.
+     * Example: "Tactical Windshield Tool - US - Angle1 - 250730_07 - MR" → "Tactical Windshield Tool - US - Angle1".
+     */
+    protected function baseName(string $s): string
+    {
+        $s = $this->sanitizeName($s);
+        // Remove from first explicit ID token (NNNNNN or NNNNNN_NN) onward, including any following suffixes
+        $s = preg_replace('/\s*-\s*\d{6}(?:_\d{2})?.*$/', '', $s);
+        // Also remove trailing short two-letter code sections if no ID is present (e.g., " - MR")
+        $s = preg_replace('/\s*-\s*[A-Z]{2}\s*$/', '', $s);
+        return trim($s);
     }
 
     protected function accountName(string $full): string
