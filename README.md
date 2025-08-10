@@ -27,6 +27,14 @@ Why it stands out:
   - Grouped by date range with per-range delete; names sorted A→Z; summary revenue
   - Info icon in header opens a modal with a screenshot of the required Binom CSV export settings (for future reference)
     - Image location: `public/images/rumble-binom-info.jpg` (served via `asset('images/rumble-binom-info.jpg')`)
+- **Binom Google Spent Data (CSV)**
+  - Parses Name, Leads, Revenue
+  - Semicolon-delimited with quoted values (";")
+  - Skips rows where Revenue <= 0 (e.g. "0.00 $")
+  - Weekly/Monthly reports only (no daily); presets end at yesterday
+  - Grouped by date range with per-range delete; names sorted A→Z; summary revenue
+  - Info icon in header opens a modal with a screenshot of the required Google/Binom CSV export settings
+    - Image location: `public/images/google-binom-info.jpg` (served via `asset('images/google-binom-info.jpg')`)
 - **Rumble Campaign Data (JSON)**
   - Parses Name, CPM, Used/Daily Limit (extracts only the limit value; Unlimited → null)
   - Robust header normalization (works with scraped headers)
@@ -117,6 +125,9 @@ Why it stands out:
 - Rumble Data: upload CSV (Campaign, Spend, CPM)
 - Binom Rumble Spent Data: upload CSV with columns `Name;Leads;Revenue` (quoted, semicolon-delimited)
   - Revenue like `170.00 $` is stored as `170.00`; rows with `0.00 $` are ignored
+- Binom Google Spent Data: upload CSV with columns `Name;Leads;Revenue` (quoted, semicolon-delimited)
+  - Weekly/Monthly only; date presets end at yesterday; rows with `Revenue <= 0` are ignored
+  - Info modal shows required export settings screenshot
 - Rumble Campaign Data: upload JSON with `header` + `body` arrays
   - Required columns: Name, CPM, Used / Daily Limit
   - Example Daily Limit formats: "$7.19 / $100", "$1,411.21 / Unlimited"
@@ -133,6 +144,7 @@ Why it stands out:
   4. Rumble Binom Report
 - Additional group: `Google and Binom Reports Only`
   1. Google Data
+  2. Binom Google Spent Data
 
 ### Combined Report (Rumble - Binom Report)
 - Navigate: `Rumble and Binom Reports Only` → `4. Rumble Binom Report`
@@ -150,6 +162,7 @@ Why it stands out:
 - Google Data (CSV): `Account name`, `Campaign`, `Cost`
 - Rumble Data (CSV): `Campaign`, `Spend`, `CPM`
 - Binom Rumble Spent Data (CSV): `Name`, `Leads`, `Revenue` (semicolon `;` delimited, quoted)
+- Binom Google Spent Data (CSV): `Name`, `Leads`, `Revenue` (semicolon `;` delimited, quoted; weekly/monthly only)
 - Rumble Campaign Data (JSON): `header` + `body` arrays with columns `Name`, `CPM`, `Used / Daily Limit`
 
 ## Export

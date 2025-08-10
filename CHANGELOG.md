@@ -14,6 +14,21 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 - [ ] Add report export functionality (CSV/XLSX) with P/L and ROI formulas
 
+## [0.5.9] - 2025-08-10
+### Added
+- Binom Google Spent Data feature (weekly/monthly only):
+  - Model `BinomGoogleSpentData`, migration `binom_google_spent_data` table
+  - Filament resource + grouped list page (`/admin/binom-google-spent-datas`)
+  - CSV upload (semicolon `;` delimited, quoted), parses `Name`, `Leads`, `Revenue`
+  - Skips rows with `Revenue <= 0`; header normalization handles quoted headers and UTF-8 BOM
+  - Groups strictly by `date_from|date_to|report_type`; rows sorted A→Z by Name
+  - Data management: Delete All, Delete by Upload Date, Delete by Date Category
+  - Date presets end at yesterday; report types restricted to Weekly/Monthly
+  - Info modal in header with screenshot at `public/images/google-binom-info.jpg` (served via `asset('images/google-binom-info.jpg')`)
+
+### Docs
+- README: Added Binom Google Spent Data feature details, usage instructions, navigation group entry, and import format
+
 ## [0.5.6] - 2025-08-09
 ### Added
 - Google Data feature (weekly/monthly only):
