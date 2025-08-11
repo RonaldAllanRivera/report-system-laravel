@@ -9,6 +9,10 @@
 - README: Mentioned COPY SUMMARY in Overview and detailed behavior under Google Binom Report.
  - README: Documented that on-screen ROI Last Week/Month applies the same green/red conditional backgrounds as ROI.
 
+### Fixed
+- Google Binom Report: ROI LAST WEEK/MONTH could show inflated values due to permissive previous-period matching (name/base/substring fallbacks).
+  - Now mirrors current-period logic: if Google campaign has an ID, match by ID only (no fallback). If no ID, allow exact sanitized-name match only. This prevents cross-campaign mismatches.
+
 ## [0.5.10] - 2025-08-11
 ### Added
 - Google Binom Report page (`App/Filament/Pages/GoogleBinomReport.php`, view `resources/views/filament/pages/google-binom-report.blade.php`):

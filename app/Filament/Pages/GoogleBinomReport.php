@@ -300,7 +300,8 @@ class GoogleBinomReport extends Page
      */
     protected function buildRoiMapFor(string $df, string $dt, string $rt): array
     {
-        // Build a lightweight ROI map from raw tables for the given period.
+        // Build a lightweight ROI map from raw tables for the given period using strict matching
+        // identical to current-period logic to avoid cross-campaign bleed.
         $google = \App\Models\GoogleData::query()
             ->select(['campaign', 'cost'])
             ->where('date_from', $df)
@@ -309,7 +310,7 @@ class GoogleBinomReport extends Page
             ->get();
 
         $binom = \App\Models\BinomGoogleSpentData::query()
-            ->select(['name', 'revenue', 'leads'])
+            ->select(['id', 'name', 'revenue'])
             ->where('date_from', $df)
             ->where('date_to', $dt)
             ->where('report_type', $rt)
@@ -317,38 +318,48 @@ class GoogleBinomReport extends Page
 
         $id = fn (string $s) => $this->extractId($s);
         $sanitize = fn (?string $s) => $this->sanitizeName($s ?? '');
-        $base = fn (?string $s) => $this->baseName($s ?? '');
 
+        // Index Binom by id and sanitized name as lists
         $binomById = [];
         $binomByName = [];
-        $binomByBase = [];
         foreach ($binom as $b) {
-            $key = $id($b->name ?? '') ?? '';
-            if ($key !== '') $binomById[$key] = $b;
-            $binomByName[$sanitize($b->name ?? '')] = $b;
-            $bkey = $base($b->name ?? '');
-            if ($bkey !== '') $binomByBase[$bkey] = $b;
+            $bid = $id($b->name ?? '') ?? '';
+            if ($bid !== '') { $binomById[$bid] = $binomById[$bid] ?? []; $binomById[$bid][] = $b; }
+            $nm = $sanitize($b->name ?? '');
+            $binomByName[$nm] = $binomByName[$nm] ?? []; $binomByName[$nm][] = $b;
         }
+
+        // Used tracker to keep behavior deterministic if needed
+        $used = [];
+        $pick = function (string $gdId, string $keyName) use (&$used, $binomById, $binomByName) {
+            // 1) Exact ID match. If Google has an ID and no Binom by that ID, DO NOT fall back.
+            if ($gdId !== '' && isset($binomById[$gdId])) {
+                foreach ($binomById[$gdId] as $cand) {
+                    $cid = (int) ($cand->id ?? 0);
+                    if (!$cid || isset($used[$cid])) continue;
+                    $used[$cid] = true;
+                    return $cand;
+                }
+                // Had an ID but no available candidates: do not fall back.
+                return null;
+            }
+            // 2) No ID: allow sanitized-name exact match only.
+            if ($gdId === '' && $keyName !== '' && isset($binomByName[$keyName])) {
+                foreach ($binomByName[$keyName] as $cand) {
+                    $cid = (int) ($cand->id ?? 0);
+                    if (!$cid || isset($used[$cid])) continue;
+                    $used[$cid] = true;
+                    return $cand;
+                }
+            }
+            return null;
+        };
 
         $map = [];
         foreach ($google as $gd) {
             $gdId = $id($gd->campaign ?? '') ?? '';
             $keyName = $sanitize($gd->campaign ?? '');
-            $keyBase = $base($gd->campaign ?? '');
-
-            $b = $gdId !== '' && isset($binomById[$gdId]) ? $binomById[$gdId] : ($binomByName[$keyName] ?? null);
-            if (!$b) {
-                $b = $binomByBase[$keyBase] ?? null;
-            }
-            if (!$b && $keyBase !== '') {
-                foreach ($binomByBase as $bkey => $candidate) {
-                    if (str_contains($bkey, $keyBase) || str_contains($keyBase, $bkey)) {
-                        $b = $candidate;
-                        break;
-                    }
-                }
-            }
-
+            $b = $pick($gdId, $keyName);
             $spend = (float) ($gd->cost ?? 0);
             $rev = (float) ($b->revenue ?? 0);
             $key = $gdId !== '' ? $gdId : $keyName;
