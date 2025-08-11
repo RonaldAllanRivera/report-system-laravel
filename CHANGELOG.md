@@ -1,18 +1,22 @@
-## [0.5.5] - 2025-08-09
+## [0.5.10] - 2025-08-11
 ### Added
-- COPY TABLE now writes both TSV (formulas) and HTML (formatting) to the clipboard.
-- HTML paste keeps formatting: bold Account Summary/SUMMARY rows, italic label cell, and conditional backgrounds for P/L/ROI.
-- SUMMARY row is guaranteed to paste by including it inside `<tbody>` in the clipboard HTML (onscreen table still uses `<tfoot>`).
-- Label cells (column B) for "Account Summary" and "SUMMARY" are bold+italic in clipboard HTML.
-### Fixed
-- Ensured rich copy fallback behavior (copy event) sets both text/html and text/plain when ClipboardItem isn't available.
+- Google Binom Report page (`App/Filament/Pages/GoogleBinomReport.php`, view `resources/views/filament/pages/google-binom-report.blade.php`):
+  - Merges Google Data and Binom Google Spent Data for Weekly/Monthly.
+  - Columns: Account, Campaign, Total Spend, Revenue, P/L, ROI, ROI LAST WEEK/MONTH, Sales.
+  - Per-section COPY TABLE (TSV + HTML) with formulas for P/L and ROI; Account Summary and SUMMARY totals computed via formulas.
+  - Displays Binom-only rows (revenue > 0 or leads > 0) when no Google match exists to keep revenue totals accurate.
 
-# Changelog
+### Changed
+- Matching rules for Google↔Binom are strict and one-to-one:
+  - If a Google row has an ID, it matches Binom only by the same ID (no name/base/substring fallback).
+  - If a Google row has no ID, it matches only by exact sanitized name. Base/substring fallbacks are disabled.
+  - Prevents cross-campaign merges and revenue inflation; leftover Binom rows are shown as Binom-only entries.
+- Grouping prefers Google account name for matched rows so all Google campaigns appear under the expected account group.
+- ROI LAST WEEK/MONTH is read directly from prior-period tables (no recursive report rebuild), improving performance.
+- Google Data grouped list loads only the latest 12 date groups for speed.
 
-All notable changes to this project will be documented in this file.
-
-## [Unreleased]
-- [ ] Add report export functionality (CSV/XLSX) with P/L and ROI formulas
+### Docs
+- README: Added Google Binom Report feature, matching rules, grouping behavior, ROI last-period source, and navigation entry.
 
 ## [0.5.9] - 2025-08-10
 ### Added
@@ -61,6 +65,23 @@ All notable changes to this project will be documented in this file.
   - Image placed at `public/images/rumble-binom-info.jpg` and referenced via `asset('images/rumble-binom-info.jpg')`.
 ### Docs
 - README: Mentioned Info icon, modal, and image asset location for future reference.
+
+## [0.5.5] - 2025-08-09
+### Added
+- COPY TABLE now writes both TSV (formulas) and HTML (formatting) to the clipboard.
+- HTML paste keeps formatting: bold Account Summary/SUMMARY rows, italic label cell, and conditional backgrounds for P/L/ROI.
+- SUMMARY row is guaranteed to paste by including it inside `<tbody>` in the clipboard HTML (onscreen table still uses `<tfoot>`).
+- Label cells (column B) for "Account Summary" and "SUMMARY" are bold+italic in clipboard HTML.
+### Fixed
+- Ensured rich copy fallback behavior (copy event) sets both text/html and text/plain when ClipboardItem isn't available.
+
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+## [Unreleased]
+- [ ] Add report export functionality (CSV/XLSX) with P/L and ROI formulas
+
 
 ## [0.5.4] - 2025-08-09
 ### Added

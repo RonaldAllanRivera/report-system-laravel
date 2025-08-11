@@ -260,25 +260,48 @@ class GroupedListGoogleData extends Page
 
     public function getGroupedGoogleData()
     {
-        return GoogleData::query()
+        // 1) Fetch only the latest N groups by date range to limit page load
+        $groupSummaries = GoogleData::query()
+            ->selectRaw('date_from, date_to, report_type, COUNT(*) as c, SUM(cost) as total_cost')
+            ->groupBy('date_from', 'date_to', 'report_type')
+            ->orderBy('date_to', 'desc')
+            ->orderBy('date_from', 'desc')
+            ->limit(12)
+            ->get();
+
+        if ($groupSummaries->isEmpty()) {
+            return collect();
+        }
+
+        // 2) Build a where filter for only those groups
+        $conditions = $groupSummaries->map(fn ($g) => [
+            'date_from' => (string) $g->date_from,
+            'date_to' => (string) $g->date_to,
+            'report_type' => (string) $g->report_type,
+        ])->all();
+
+        $items = GoogleData::query()
             ->select([
-                'id',
-                'account_name',
-                'campaign',
-                'cost',
-                'date_from',
-                'date_to',
-                'report_type',
-                'created_at',
+                'id', 'account_name', 'campaign', 'cost', 'date_from', 'date_to', 'report_type', 'created_at',
             ])
+            ->where(function ($q) use ($conditions) {
+                foreach ($conditions as $cond) {
+                    $q->orWhere(function ($qq) use ($cond) {
+                        $qq->where('date_from', $cond['date_from'])
+                           ->where('date_to', $cond['date_to'])
+                           ->where('report_type', $cond['report_type']);
+                    });
+                }
+            })
             ->orderBy('date_to', 'desc')
             ->orderBy('date_from', 'desc')
             ->orderBy('account_name', 'asc')
             ->orderBy('campaign', 'asc')
-            ->get()
-            ->groupBy(function ($row) {
-                return ($row->date_from ?? '') . '|' . ($row->date_to ?? '') . '|' . ($row->report_type ?? '');
-            });
+            ->get();
+
+        return $items->groupBy(function ($row) {
+            return ($row->date_from ?? '') . '|' . ($row->date_to ?? '') . '|' . ($row->report_type ?? '');
+        });
     }
 
     public function deleteRange(string $rangeKey): void

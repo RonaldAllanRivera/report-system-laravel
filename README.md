@@ -64,6 +64,16 @@ Why it stands out:
     - P/L and ROI cells have conditional backgrounds: positive `#a3da9d`, negative `#ff8080` (zero/empty = default background).
     - Implemented via inline styles (not Tailwind bg classes) to satisfy IDE lints.
     - Clipboard HTML also bold+italicizes the "Account Summary" and "SUMMARY" labels in column B.
+\n+- **Google Binom Report**
+  - Merges `Google Data` and `Binom Google Spent Data` for Weekly/Monthly reports.
+  - Columns: Account, Campaign, Total Spend, Revenue, P/L, ROI, ROI LAST WEEK/MONTH, Sales.
+  - Strict one-to-one matching:
+    - If a Google campaign has an ID, it can only match a Binom row with the same ID (no name/base/substring fallback).
+    - If the Google campaign has no ID, only an exact sanitized-name match is allowed.
+    - Any unmatched Binom rows with `revenue > 0` or `leads > 0` are shown as Binom‑only rows to preserve totals.
+  - Grouping prefers the Google `account_name` so Google campaigns always appear under their expected account group.
+  - ROI LAST WEEK/MONTH is read directly from the prior period’s raw tables (no recursive report rebuild).
+  - Includes the same COPY TABLE behavior as above (TSV+HTML with formulas and formatting).
 - **Data Management**
   - Delete All
   - Delete by Upload Date (per day)
@@ -145,6 +155,7 @@ Why it stands out:
 - Additional group: `Google and Binom Reports Only`
   1. Google Data
   2. Binom Google Spent Data
+  3. Google Binom Report
 
 ### Combined Report (Rumble - Binom Report)
 - Navigate: `Rumble and Binom Reports Only` → `4. Rumble Binom Report`
