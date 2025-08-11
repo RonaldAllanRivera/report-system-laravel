@@ -321,16 +321,46 @@
     // Build TSV
     const tsv = outRows.map(r => r.join('\t')).join('\n');
 
-    // Build simple HTML table (preserves bold/italic in email clients)
+    // Build simple HTML table (preserves bold/italic and conditional backgrounds like COPY TABLE)
     const esc = (s) => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\"/g,'&quot;');
+    const toMoney = (s) => {
+      if (!s) return NaN;
+      let t = String(s).trim();
+      let neg = false;
+      if (t.includes('(') && t.includes(')')) { neg = true; t = t.replace(/[()]/g,''); }
+      if (t.startsWith('-')) { neg = !neg || true; t = t.slice(1); }
+      t = t.replace(/[$,\s]/g,'');
+      const n = parseFloat(t);
+      return isNaN(n) ? NaN : (neg ? -Math.abs(n) : n);
+    };
+    const toPercent = (s) => {
+      if (!s) return NaN;
+      let t = String(s).trim();
+      let neg = false;
+      if (t.includes('(') && t.includes(')')) { neg = true; t = t.replace(/[()]/g,''); }
+      if (t.startsWith('-')) { neg = !neg || true; t = t.slice(1); }
+      t = t.replace(/[%,\s]/g,'');
+      const n = parseFloat(t);
+      return isNaN(n) ? NaN : (neg ? -Math.abs(n) : n);
+    };
     const headHtml = `<tr>${outRows[0].map(h => `<th>${esc(h)}</th>`).join('')}</tr>`;
     const bodyHtml = outRows.slice(1).map(row => {
-      const cells = row.map((v,i) => {
+      const tds = row.map((v,i) => {
         const e = esc(v);
-        if (i===0 && v === 'SUMMARY') return `<td><b><i>${e}</i></td>`;
-        return `<td>${e}</td>`;
+        // Columns: 0=Account,1=Spend,2=Revenue,3=P/L,4=ROI,5=ROI Last
+        let style = '';
+        if (i === 3) { // P/L
+          const n = toMoney(v);
+          if (!isNaN(n) && n !== 0) style = `background-color:${n>0?'#a3da9d':'#ff8080'};`;
+        }
+        if (i === 4 || i === 5) { // ROI / ROI Last
+          const n = toPercent(v);
+          if (!isNaN(n) && n !== 0) style = `background-color:${n>0?'#a3da9d':'#ff8080'};`;
+        }
+        if (i===0 && v === 'SUMMARY') return `<td${style?` style="${style}"`:''}><b><i>${e}</i></b></td>`;
+        return `<td${style?` style="${style}"`:''}>${e}</td>`;
       }).join('');
-      return `<tr>${cells}</tr>`;
+      return `<tr>${tds}</tr>`;
     }).join('');
     const html = `<table><thead>${headHtml}</thead><tbody>${bodyHtml}</tbody></table>`;
 

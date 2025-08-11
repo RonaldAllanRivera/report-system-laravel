@@ -88,6 +88,7 @@ Roadmap (APIs & automation):
     - Copies only per‑account Account Summary rows and the bottom SUMMARY row.
     - Columns: Account Name, Total Spend, Revenue, P/L, ROI, ROI Last Week/Month.
     - No formulas; outputs TSV + HTML for clean paste into Google Sheets/Excel and email (Gmail).
+    - HTML clipboard applies the same conditional backgrounds as COPY TABLE: green `#a3da9d` for positive and red `#ff8080` for negative in P/L, ROI, and ROI Last Week/Month cells.
 - **Data Management**
   - Delete All
   - Delete by Upload Date (per day)
