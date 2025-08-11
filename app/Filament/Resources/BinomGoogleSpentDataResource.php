@@ -13,7 +13,7 @@ class BinomGoogleSpentDataResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-document-currency-dollar';
     protected static ?string $navigationGroup = 'Google and Binom Reports Only';
     protected static ?string $navigationLabel = '2. Binom Google Spent Data';
-    protected static ?int $navigationSort = 5;
+    protected static ?int $navigationSort = 2;
 
     public static function getPages(): array
     {

@@ -13,7 +13,7 @@ class GoogleDataResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-document-text';
     protected static ?string $navigationGroup = 'Google and Binom Reports Only';
     protected static ?string $navigationLabel = '1. Google Data';
-    protected static ?int $navigationSort = 4;
+    protected static ?int $navigationSort = 1;
 
     public static function getPages(): array
     {
