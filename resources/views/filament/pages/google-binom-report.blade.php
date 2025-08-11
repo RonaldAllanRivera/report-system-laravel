@@ -83,7 +83,8 @@
                                         <td class="px-3 py-2 text-gray-700" style="{{ (($group['summary']['pl'] ?? 0) > 0) ? 'background-color:#a3da9d' : ((($group['summary']['pl'] ?? 0) < 0) ? 'background-color:#ff8080' : '') }}">{{ $this->fmtMoney(($group['summary']['pl'] ?? 0)) }}</td>
                                         @php($gRoi = $group['summary']['roi'] ?? null)
                                         <td class="px-3 py-2 text-gray-700" style="{{ (($gRoi ?? 0) > 0) ? 'background-color:#a3da9d' : ((($gRoi ?? 0) < 0) ? 'background-color:#ff8080' : '') }}">{{ $this->fmtPercent($group['summary']['roi'] ?? null) }}</td>
-                                        <td class="px-3 py-2 text-gray-700"></td>
+                                        @php($gRoiPrev = $group['summary']['roi_prev'] ?? null)
+                                        <td class="px-3 py-2 text-gray-700" style="{{ (($gRoiPrev ?? 0) > 0) ? 'background-color:#a3da9d' : ((($gRoiPrev ?? 0) < 0) ? 'background-color:#ff8080' : '') }}">{{ $this->fmtPercent($group['summary']['roi_prev'] ?? null) }}</td>
                                         <td class="px-3 py-2"></td>
                                     </tr>
                                     <tr class="border-0">
@@ -100,7 +101,8 @@
                                     <td class="px-3 py-2 text-gray-700" style="{{ (($report['totals']['pl'] ?? 0) > 0) ? 'background-color:#a3da9d' : ((($report['totals']['pl'] ?? 0) < 0) ? 'background-color:#ff8080' : '') }}">{{ $this->fmtMoney($report['totals']['pl'] ?? 0) }}</td>
                                     @php($tRoi = $report['totals']['roi'] ?? null)
                                     <td class="px-3 py-2 text-gray-700" style="{{ (($tRoi ?? 0) > 0) ? 'background-color:#a3da9d' : ((($tRoi ?? 0) < 0) ? 'background-color:#ff8080' : '') }}">{{ $this->fmtPercent($report['totals']['roi'] ?? null) }}</td>
-                                    <td class="px-3 py-2 text-gray-700"></td>
+                                    @php($tRoiPrev = $report['totals']['roi_prev'] ?? null)
+                                    <td class="px-3 py-2 text-gray-700" style="{{ (($tRoiPrev ?? 0) > 0) ? 'background-color:#a3da9d' : ((($tRoiPrev ?? 0) < 0) ? 'background-color:#ff8080' : '') }}">{{ $this->fmtPercent($report['totals']['roi_prev'] ?? null) }}</td>
                                     <td class="px-3 py-2"></td>
                                 </tr>
                             </tfoot>

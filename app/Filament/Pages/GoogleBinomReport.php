@@ -181,7 +181,7 @@ class GoogleBinomReport extends Page
             foreach ($rows as &$row) {
                 $k = (string) ($row['_key'] ?? '');
                 if ($k !== '' && array_key_exists($k, $prevMap)) {
-                    $row['roi_prev'] = $prevMap[$k];
+                    $row['roi_prev'] = $prevMap[$k]['roi'];
                 } else {
                     $row['roi_prev'] = null;
                 }
@@ -192,10 +192,20 @@ class GoogleBinomReport extends Page
         // Group by account and compute summaries, then sort
         $groups = collect($rows)
             ->groupBy('account')
-            ->map(function (Collection $items, string $account) {
+            ->map(function (Collection $items, string $account) use ($withPrev, $prevMap) {
                 $items = $items->sortBy(fn ($r) => strtolower($r['campaign_name']))->values();
                 $sumSpend = $items->sum('spend');
                 $sumRevenue = $items->sum('revenue');
+                $sumPrevSpend = 0.0; $sumPrevRevenue = 0.0;
+                if ($withPrev && !empty($prevMap)) {
+                    foreach ($items as $it) {
+                        $k = (string) ($it['_key'] ?? '');
+                        if ($k !== '' && isset($prevMap[$k])) {
+                            $sumPrevSpend += (float) ($prevMap[$k]['spend'] ?? 0);
+                            $sumPrevRevenue += (float) ($prevMap[$k]['revenue'] ?? 0);
+                        }
+                    }
+                }
                 return [
                     'account' => $account,
                     'rows' => $items->all(),
@@ -204,6 +214,7 @@ class GoogleBinomReport extends Page
                         'revenue' => $sumRevenue,
                         'pl' => $sumRevenue - $sumSpend,
                         'roi' => $sumSpend > 0 ? (($sumRevenue / $sumSpend) - 1.0) : null,
+                        'roi_prev' => ($sumPrevSpend > 0 ? (($sumPrevRevenue / $sumPrevSpend) - 1.0) : null),
                     ],
                 ];
             })
@@ -213,6 +224,16 @@ class GoogleBinomReport extends Page
 
         $totalSpend = array_sum(array_column($rows, 'spend'));
         $totalRevenue = array_sum(array_column($rows, 'revenue'));
+        $totalPrevSpend = 0.0; $totalPrevRevenue = 0.0;
+        if ($withPrev ?? false) {
+            foreach ($rows as $r) {
+                $k = (string) ($r['_key'] ?? '');
+                if ($k !== '' && isset($prevMap[$k])) {
+                    $totalPrevSpend += (float) ($prevMap[$k]['spend'] ?? 0);
+                    $totalPrevRevenue += (float) ($prevMap[$k]['revenue'] ?? 0);
+                }
+            }
+        }
 
         return [
             'date_from' => $df,
@@ -224,6 +245,7 @@ class GoogleBinomReport extends Page
                 'revenue' => $totalRevenue,
                 'pl' => $totalRevenue - $totalSpend,
                 'roi' => $totalSpend > 0 ? (($totalRevenue / $totalSpend) - 1.0) : null,
+                'roi_prev' => ($totalPrevSpend > 0 ? (($totalPrevRevenue / $totalPrevSpend) - 1.0) : null),
             ],
             'has_rows' => count($rows) > 0,
         ];
@@ -364,7 +386,11 @@ class GoogleBinomReport extends Page
             $rev = (float) ($b->revenue ?? 0);
             $key = $gdId !== '' ? $gdId : $keyName;
             if ($key !== '') {
-                $map[$key] = $spend > 0 ? (($rev / $spend) - 1.0) : null;
+                $map[$key] = [
+                    'roi' => $spend > 0 ? (($rev / $spend) - 1.0) : null,
+                    'spend' => $spend,
+                    'revenue' => $rev,
+                ];
             }
         }
 

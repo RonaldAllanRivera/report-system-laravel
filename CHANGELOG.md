@@ -12,6 +12,8 @@
 ### Fixed
 - Google Binom Report: ROI LAST WEEK/MONTH could show inflated values due to permissive previous-period matching (name/base/substring fallbacks).
   - Now mirrors current-period logic: if Google campaign has an ID, match by ID only (no fallback). If no ID, allow exact sanitized-name match only. This prevents cross-campaign mismatches.
+ - Google Binom Report: COPY SUMMARY did not include ROI Last Week/Month values.
+   - Added computation of previous-period ROI for Account Summary and overall SUMMARY; values are rendered on-screen and included in COPY SUMMARY output (with green/red backgrounds in HTML clipboard).
 
 ## [0.5.10] - 2025-08-11
 ### Added
