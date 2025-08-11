@@ -43,6 +43,17 @@
                             <span x-show="!copyingSummary">COPY SUMMARY</span>
                             <span x-show="copyingSummary" class="text-green-600">COPIED</span>
                         </button>
+                        <span class="ml-3 text-[11px] text-gray-500 uppercase tracking-wide" title="Full mode includes all previous-period campaigns for the account/overall.">ROI Last</span>
+                        <div class="inline-flex divide-x divide-gray-200 dark:divide-gray-700 rounded-md shadow-sm overflow-hidden ring-1 ring-gray-200 dark:ring-gray-700 bg-white dark:bg-gray-900" role="group" title="Cohort mode only includes the campaigns present in the current table (current-period cohort).">
+                            <button type="button" wire:click="setRoiPrevMode('full')" title="Full mode includes all previous-period campaigns for the account/overall."
+                                class="px-2.5 py-1 text-[11px] font-medium focus:outline-none transition {{ $this->roiPrevMode === 'full' ? 'bg-amber-500 text-white' : 'bg-gray-50 text-gray-800 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700' }} rounded-l-md">
+                                Full
+                            </button>
+                            <button type="button" wire:click="setRoiPrevMode('cohort')" title="Cohort mode only includes the campaigns present in the current table (current-period cohort)."
+                                class="px-2.5 py-1 text-[11px] font-medium focus:outline-none transition {{ $this->roiPrevMode === 'cohort' ? 'bg-amber-500 text-white' : 'bg-gray-50 text-gray-800 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700' }} rounded-r-md">
+                                Cohort
+                            </button>
+                        </div>
                         <svg x-bind:class="open ? 'rotate-180' : ''" class="h-4 w-4 transition-transform" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
                     </div>
                 </div>
@@ -57,7 +68,10 @@
                                     <th class="px-3 py-2 font-medium text-gray-600">REVENUE</th>
                                     <th class="px-3 py-2 font-medium text-gray-600">P/L</th>
                                     <th class="px-3 py-2 font-medium text-gray-600">ROI</th>
-                                    <th class="px-3 py-2 font-medium text-gray-600">{{ $rt === 'weekly' ? 'ROI LAST WEEK' : 'ROI LAST MONTH' }}</th>
+                                    <th class="px-3 py-2 font-medium text-gray-600">
+                                        {{ $rt === 'weekly' ? 'ROI LAST WEEK' : 'ROI LAST MONTH' }}
+                                        <span class="ml-1 text-[10px] text-gray-500">({{ $this->roiPrevMode === 'cohort' ? 'Cohort' : 'Full' }})</span>
+                                    </th>
                                     <th class="px-3 py-2 font-medium text-gray-600">SALES</th>
                                 </tr>
                             </thead>
@@ -123,7 +137,19 @@
                 <h2 class="text-lg font-semibold">Google Binom Report</h2>
                 <p class="text-xs text-gray-600">Type: <span class="font-medium">{{ strtoupper($filters['report_type'] ?? 'weekly') }}</span></p>
             </div>
-            <div class="flex items-center gap-2"></div>
+             <div class="flex items-center gap-2">
+                <span class="text-[11px] text-gray-600" title="Full mode includes all previous-period campaigns for the account/overall.">ROI Last mode:</span>
+                <div class="inline-flex divide-x divide-gray-200 dark:divide-gray-700 rounded-md shadow-sm overflow-hidden ring-1 ring-gray-200 dark:ring-gray-700 bg-white dark:bg-gray-900" role="group" title="Cohort mode only includes the campaigns present in the current table (current-period cohort).">
+                    <button type="button" wire:click="setRoiPrevMode('full')" title="Full mode includes all previous-period campaigns for the account/overall."
+                        class="px-2.5 py-1 text-[11px] font-medium focus:outline-none transition {{ $this->roiPrevMode === 'full' ? 'bg-amber-500 text-white' : 'bg-gray-50 text-gray-800 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700' }} rounded-l-md">
+                        Full Totals
+                    </button>
+                    <button type="button" wire:click="setRoiPrevMode('cohort')" title="Cohort mode only includes the campaigns present in the current table (current-period cohort)."
+                        class="px-2.5 py-1 text-[11px] font-medium focus:outline-none transition {{ $this->roiPrevMode === 'cohort' ? 'bg-amber-500 text-white' : 'bg-gray-50 text-gray-800 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700' }} rounded-r-md">
+                        Cohort
+                    </button>
+                </div>
+            </div>
         </div>
     </x-slot>
 </x-filament-panels::page>

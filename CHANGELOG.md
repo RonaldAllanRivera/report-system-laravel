@@ -1,16 +1,21 @@
 ## [0.5.11] - 2025-08-11
 ### Changed
 - Google Binom Report: Account Summary and bottom SUMMARY “ROI Last Week/Month” now use full previous-period totals per account and overall (all campaigns from the previous period), not just the cohort of campaigns listed this week.
+  - Added mode selector to switch between Full Totals and Cohort for these summaries; computations now respect the selected mode.
 
 ### Added
 - Google Binom Report: "COPY SUMMARY" button beside "COPY TABLE".
   - Copies only per-account Account Summary rows and the bottom SUMMARY row.
   - Columns: Account Name, Total Spend, Revenue, P/L, ROI, ROI Last Week/Month.
   - Clipboard: TSV + HTML; no formulas; optimized for Google Sheets, Excel, and email paste (Gmail).
+ - Google Binom Report: ROI Last mode toggle in page header (Full Totals vs Cohort). Default is Full. The ROI Last column header shows the active mode in parentheses for clarity.
+ - Google Binom Report: Tooltips on ROI Last mode buttons (Full/Cohort) explaining behavior for future reference.
 
 ### Docs
 - README: Mentioned COPY SUMMARY in Overview and detailed behavior under Google Binom Report.
  - README: Documented that on-screen ROI Last Week/Month applies the same green/red conditional backgrounds as ROI.
+ - README: Documented the ROI Last mode toggle (Full vs Cohort) and that row-level ROI Last remains per-campaign.
+ - README: Clarified that both COPY TABLE and COPY SUMMARY reflect the selected mode, and added per-button tooltip notes.
 
 ### Fixed
 - Google Binom Report: ROI LAST WEEK/MONTH could show inflated values due to permissive previous-period matching (name/base/substring fallbacks).

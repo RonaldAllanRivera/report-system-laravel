@@ -21,6 +21,11 @@ class GoogleBinomReport extends Page
 
     public array $filters = [];
 
+    // Controls how Account Summary and SUMMARY "ROI Last" are computed:
+    // 'full'  => use full previous-period totals per account / overall
+    // 'cohort' => use only campaigns listed this week (cohort-based)
+    public string $roiPrevMode = 'full';
+
     public function mount(): void
     {
         $today = now();
@@ -43,6 +48,12 @@ class GoogleBinomReport extends Page
     {
         $type = in_array($type, ['weekly', 'monthly'], true) ? $type : 'weekly';
         $this->filters['report_type'] = $type;
+    }
+
+    public function setRoiPrevMode(string $mode): void
+    {
+        $mode = in_array($mode, ['cohort', 'full'], true) ? $mode : 'full';
+        $this->roiPrevMode = $mode;
     }
 
     /**
@@ -167,6 +178,7 @@ class GoogleBinomReport extends Page
         }
 
         // Compute previous period ROI map for 'ROI LAST WEEK/MONTH' only when requested
+        $prevMap = [];
         if ($withPrev) {
             $prevDf = $df;
             $prevDt = $dt;
@@ -231,42 +243,67 @@ class GoogleBinomReport extends Page
             'has_rows' => count($rows) > 0,
         ];
 
-        // Override Account Summary and SUMMARY roi_prev using full previous-period totals
+        // Override Account Summary and SUMMARY roi_prev depending on selected mode
         if ($withPrev ?? false) {
-            // Compute previous date range again (same logic as above)
-            $prevDf2 = $df; $prevDt2 = $dt;
-            if ($rt === 'weekly') {
-                $prevDf2 = (string) \Illuminate\Support\Carbon::parse($df)->subDays(7)->toDateString();
-                $prevDt2 = (string) \Illuminate\Support\Carbon::parse($dt)->subDays(7)->toDateString();
-            } elseif ($rt === 'monthly') {
-                $prevDf2 = (string) \Illuminate\Support\Carbon::parse($df)->subMonthNoOverflow()->startOfMonth()->toDateString();
-                $prevDt2 = (string) \Illuminate\Support\Carbon::parse($df)->subMonthNoOverflow()->endOfMonth()->toDateString();
-            }
-            $prevReport = $this->buildReportDataFor($prevDf2, $prevDt2, $rt, false);
-            $prevByAccount = [];
-            foreach ($prevReport['groups'] as $g) {
-                $acc = (string) ($g['account'] ?? '');
-                if ($acc === '') continue;
-                $prevByAccount[$acc] = [
-                    'spend' => (float) ($g['summary']['spend'] ?? 0),
-                    'revenue' => (float) ($g['summary']['revenue'] ?? 0),
-                ];
-            }
-            // Fill group roi_prev from full previous totals by account
-            for ($i = 0; $i < count($result['groups']); $i++) {
-                $acc = (string) ($result['groups'][$i]['account'] ?? '');
-                if ($acc !== '' && isset($prevByAccount[$acc])) {
-                    $ps = (float) $prevByAccount[$acc]['spend'];
-                    $pr = (float) $prevByAccount[$acc]['revenue'];
-                    $result['groups'][$i]['summary']['roi_prev'] = $ps > 0 ? (($pr / $ps) - 1.0) : null;
-                } else {
-                    $result['groups'][$i]['summary']['roi_prev'] = null;
+            if ($this->roiPrevMode === 'full') {
+                // Compute previous date range again (same logic as above)
+                $prevDf2 = $df; $prevDt2 = $dt;
+                if ($rt === 'weekly') {
+                    $prevDf2 = (string) \Illuminate\Support\Carbon::parse($df)->subDays(7)->toDateString();
+                    $prevDt2 = (string) \Illuminate\Support\Carbon::parse($dt)->subDays(7)->toDateString();
+                } elseif ($rt === 'monthly') {
+                    $prevDf2 = (string) \Illuminate\Support\Carbon::parse($df)->subMonthNoOverflow()->startOfMonth()->toDateString();
+                    $prevDt2 = (string) \Illuminate\Support\Carbon::parse($df)->subMonthNoOverflow()->endOfMonth()->toDateString();
                 }
+                $prevReport = $this->buildReportDataFor($prevDf2, $prevDt2, $rt, false);
+                $prevByAccount = [];
+                foreach ($prevReport['groups'] as $g) {
+                    $acc = (string) ($g['account'] ?? '');
+                    if ($acc === '') continue;
+                    $prevByAccount[$acc] = [
+                        'spend' => (float) ($g['summary']['spend'] ?? 0),
+                        'revenue' => (float) ($g['summary']['revenue'] ?? 0),
+                    ];
+                }
+                // Fill group roi_prev from full previous totals by account
+                for ($i = 0; $i < count($result['groups']); $i++) {
+                    $acc = (string) ($result['groups'][$i]['account'] ?? '');
+                    if ($acc !== '' && isset($prevByAccount[$acc])) {
+                        $ps = (float) $prevByAccount[$acc]['spend'];
+                        $pr = (float) $prevByAccount[$acc]['revenue'];
+                        $result['groups'][$i]['summary']['roi_prev'] = $ps > 0 ? (($pr / $ps) - 1.0) : null;
+                    } else {
+                        $result['groups'][$i]['summary']['roi_prev'] = null;
+                    }
+                }
+                // Fill totals roi_prev from full previous-period overall totals
+                $psT = (float) ($prevReport['totals']['spend'] ?? 0);
+                $prT = (float) ($prevReport['totals']['revenue'] ?? 0);
+                $result['totals']['roi_prev'] = $psT > 0 ? (($prT / $psT) - 1.0) : null;
+            } else { // cohort mode
+                // Per-account summaries: sum prev spend/revenue only for campaigns shown this week in each group
+                for ($i = 0; $i < count($result['groups']); $i++) {
+                    $sumPrevSpend = 0.0; $sumPrevRevenue = 0.0;
+                    foreach ($result['groups'][$i]['rows'] as $it) {
+                        $k = (string) ($it['_key'] ?? '');
+                        if ($k !== '' && isset($prevMap[$k])) {
+                            $sumPrevSpend += (float) ($prevMap[$k]['spend'] ?? 0);
+                            $sumPrevRevenue += (float) ($prevMap[$k]['revenue'] ?? 0);
+                        }
+                    }
+                    $result['groups'][$i]['summary']['roi_prev'] = $sumPrevSpend > 0 ? (($sumPrevRevenue / $sumPrevSpend) - 1.0) : null;
+                }
+                // Totals: cohort across all rows
+                $totalPrevSpend = 0.0; $totalPrevRevenue = 0.0;
+                foreach ($rows as $r) {
+                    $k = (string) ($r['_key'] ?? '');
+                    if ($k !== '' && isset($prevMap[$k])) {
+                        $totalPrevSpend += (float) ($prevMap[$k]['spend'] ?? 0);
+                        $totalPrevRevenue += (float) ($prevMap[$k]['revenue'] ?? 0);
+                    }
+                }
+                $result['totals']['roi_prev'] = $totalPrevSpend > 0 ? (($totalPrevRevenue / $totalPrevSpend) - 1.0) : null;
             }
-            // Fill totals roi_prev from full previous-period overall totals
-            $psT = (float) ($prevReport['totals']['spend'] ?? 0);
-            $prT = (float) ($prevReport['totals']['revenue'] ?? 0);
-            $result['totals']['roi_prev'] = $psT > 0 ? (($prT / $psT) - 1.0) : null;
         }
 
         return $result;
