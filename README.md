@@ -1,12 +1,22 @@
 # Rumble + Binom Report System (CSV/JSON Upload)
 
 ## Overview
-Modern, API-free performance marketing reporting. This Laravel 12 app ingests CSV/JSON exports (no 3rd‑party API keys), normalizes multiple ad network datasets, and renders fast, reliable admin dashboards with spreadsheet‑friendly tables.
+Modern, API-free performance marketing reporting. This Laravel 12 app ingests CSV/JSON exports (no 3rd‑party API keys), normalizes multiple ad network datasets, and renders fast, reliable admin dashboards with spreadsheet‑friendly tables. Built as a portfolio‑ready system with clean UX, strong data correctness guarantees, and an automation roadmap.
 
 Why it stands out:
 - Business impact: turns raw exports into actionable daily/weekly/monthly insights in minutes.
 - Strong UX: Filament Admin, collapsible grouped views, and one‑click “COPY TABLE” to Google Sheets/Excel (with formulas).
 - Pragmatic engineering: resilient parsers, strict date‑range joins, and alphabetic sorting for consistent operations.
+ - Data accuracy: strict one‑to‑one campaign matching (ID‑first, sanitized‑name fallback) and Binom‑only revenue rows ensure no double counting and no missing revenue.
+ - Performance & scale: fast grouped views, lazy loads, and recent‑period limits on heavy pages while keeping totals consistent.
+ - Spreadsheet fidelity: COPY TABLE outputs TSV + rich HTML with formulas (P/L, ROI, summaries) so pasted sheets compute immediately.
+
+Roadmap (APIs & automation):
+- Connect Gmail (OAuth/Gmail API) to auto‑ingest email report attachments.
+- Connect Google Ads API to sync Account/Campaign/Cost data on a schedule.
+- Connect Rumble REST API to pull Campaign/Spend/CPM (CSV remains as fallback).
+- Connect Binom REST API to fetch Name/Leads/Revenue.
+- Production‑ready ops: .env‑driven credentials, Laravel Scheduler jobs, idempotent upserts, retries/backoff, rate limiting, and observability.
 
 ## Features
 - **Filament Admin Panel** (free)
@@ -181,6 +191,27 @@ Why it stands out:
   - Include formulas in exports:
     - P/L: `=Revenue - Spend`
     - ROI: `=IF(Spend>0, Revenue/Spend - 1, "")`
+
+## Future Integrations
+- Google Email (Gmail API)
+  - OAuth 2.0 via Google Cloud; secure token storage and automatic refresh
+  - Optional: label-based fetch and webhook/polling to auto-import report attachments
+
+- Google Ads API
+  - OAuth 2.0; pull Account name, Campaign, Cost for weekly/monthly
+  - Scheduled sync with rate limiting/retries; reconcile against CSV via feature flag
+
+- Rumble REST API
+  - Use official endpoints if available; otherwise keep CSV fallback
+  - Fetch Campaign, Spend, CPM; map into `rumble_data`
+
+- Binom REST API
+  - API key/token auth; fetch Name, Leads, Revenue; map into Binom tables
+  - Preserve strict `date_from|date_to|report_type` joins and 1:1 matching rules
+
+- Platform & Ops
+  - .env-driven credentials; Laravel Scheduler jobs; idempotent upserts by `(date_from, date_to, report_type, campaign key)`
+  - Retries with exponential backoff, rate limiting, metrics/audit logs
 
 ## License
 MIT
