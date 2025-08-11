@@ -176,9 +176,9 @@
               if (col===5) {
                 val = raw ? `=D${rowNumber}-C${rowNumber}` : '';
               }
-              // ROI formula (col 6) => =(D{row}/C{row})-1
+              // ROI formula (col 6) => percent string using TEXT to ensure % on paste
               if (col===6) {
-                val = raw ? `=(D${rowNumber}/C${rowNumber})-1` : '';
+                val = raw ? `=IF(C${rowNumber}>0, TEXT((D${rowNumber}/C${rowNumber})-1, "0.00%"), "")` : '';
               }
               // Account Summary Spend/Revenue formulas over the group's data rows
               if (isAccountSummary && groupStartRow !== null && groupEndRow !== null) {

@@ -192,9 +192,9 @@
               if (col===6) {
                 val = raw ? `=E${rowNumber}-D${rowNumber}` : '';
               }
-              // ROI formula (col 7) => =(E{row}/D{row})-1; skip if this cell is empty
+              // ROI formula (col 7) => percent string using TEXT to ensure % on paste
               if (col===7) {
-                val = raw ? `=(E${rowNumber}/D${rowNumber})-1` : '';
+                val = raw ? `=IF(D${rowNumber}>0, TEXT((E${rowNumber}/D${rowNumber})-1, "0.00%"), "")` : '';
               }
               // Account Summary Spend/Revenue formulas over the group's data rows
               if (isAccountSummary && groupStartRow !== null && groupEndRow !== null) {

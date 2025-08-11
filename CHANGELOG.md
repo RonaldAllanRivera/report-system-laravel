@@ -14,6 +14,7 @@
 - Grouping prefers Google account name for matched rows so all Google campaigns appear under the expected account group.
 - ROI LAST WEEK/MONTH is read directly from prior-period tables (no recursive report rebuild), improving performance.
 - Google Data grouped list loads only the latest 12 date groups for speed.
+ - COPY TABLE clipboard ROI now pastes as percent string via `TEXT()` formula for both reports.
 
 ### Docs
 - README: Added Google Binom Report feature, matching rules, grouping behavior, ROI last-period source, and navigation entry.
