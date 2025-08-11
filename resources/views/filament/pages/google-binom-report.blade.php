@@ -71,7 +71,7 @@
                                             <td class="px-3 py-2 text-gray-600">{{ $this->fmtMoney($row['revenue']) }}</td>
                                             <td class="px-3 py-2 text-gray-600" style="{{ (($row['pl'] ?? 0) > 0) ? 'background-color:#a3da9d' : ((($row['pl'] ?? 0) < 0) ? 'background-color:#ff8080' : '') }}">{{ $this->fmtMoney($row['pl']) }}</td>
                                             <td class="px-3 py-2 text-gray-600" style="{{ (($row['roi'] ?? 0) > 0) ? 'background-color:#a3da9d' : ((($row['roi'] ?? 0) < 0) ? 'background-color:#ff8080' : '') }}">{{ $this->fmtPercent($row['roi']) }}</td>
-                                            <td class="px-3 py-2 text-gray-600">{{ $this->fmtPercent($row['roi_prev']) }}</td>
+                                            <td class="px-3 py-2 text-gray-600" style="{{ (($row['roi_prev'] ?? 0) > 0) ? 'background-color:#a3da9d' : ((($row['roi_prev'] ?? 0) < 0) ? 'background-color:#ff8080' : '') }}">{{ $this->fmtPercent($row['roi_prev']) }}</td>
                                             <td class="px-3 py-2 text-gray-600">{{ $row['sales'] ?? '' }}</td>
                                         </tr>
                                     @endforeach
@@ -83,7 +83,7 @@
                                         <td class="px-3 py-2 text-gray-700" style="{{ (($group['summary']['pl'] ?? 0) > 0) ? 'background-color:#a3da9d' : ((($group['summary']['pl'] ?? 0) < 0) ? 'background-color:#ff8080' : '') }}">{{ $this->fmtMoney(($group['summary']['pl'] ?? 0)) }}</td>
                                         @php($gRoi = $group['summary']['roi'] ?? null)
                                         <td class="px-3 py-2 text-gray-700" style="{{ (($gRoi ?? 0) > 0) ? 'background-color:#a3da9d' : ((($gRoi ?? 0) < 0) ? 'background-color:#ff8080' : '') }}">{{ $this->fmtPercent($group['summary']['roi'] ?? null) }}</td>
-                                        <td class="px-3 py-2"></td>
+                                        <td class="px-3 py-2 text-gray-700"></td>
                                         <td class="px-3 py-2"></td>
                                     </tr>
                                     <tr class="border-0">
@@ -100,7 +100,7 @@
                                     <td class="px-3 py-2 text-gray-700" style="{{ (($report['totals']['pl'] ?? 0) > 0) ? 'background-color:#a3da9d' : ((($report['totals']['pl'] ?? 0) < 0) ? 'background-color:#ff8080' : '') }}">{{ $this->fmtMoney($report['totals']['pl'] ?? 0) }}</td>
                                     @php($tRoi = $report['totals']['roi'] ?? null)
                                     <td class="px-3 py-2 text-gray-700" style="{{ (($tRoi ?? 0) > 0) ? 'background-color:#a3da9d' : ((($tRoi ?? 0) < 0) ? 'background-color:#ff8080' : '') }}">{{ $this->fmtPercent($report['totals']['roi'] ?? null) }}</td>
-                                    <td class="px-3 py-2"></td>
+                                    <td class="px-3 py-2 text-gray-700"></td>
                                     <td class="px-3 py-2"></td>
                                 </tr>
                             </tfoot>

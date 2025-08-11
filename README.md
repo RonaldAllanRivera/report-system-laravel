@@ -1,4 +1,4 @@
-# Rumble + Binom Report System (CSV/JSON Upload)
+# Multi-Source Marketing Data Dashboard (CSV/JSON)
 
 ## Overview
 Modern, API-free performance marketing reporting. This Laravel 12 app ingests CSV/JSON exports (no 3rd‑party API keys), normalizes multiple ad network datasets, and renders fast, reliable admin dashboards with spreadsheet‑friendly tables. Built as a portfolio‑ready system with clean UX, strong data correctness guarantees, and an automation roadmap.
@@ -89,6 +89,8 @@ Roadmap (APIs & automation):
     - Columns: Account Name, Total Spend, Revenue, P/L, ROI, ROI Last Week/Month.
     - No formulas; outputs TSV + HTML for clean paste into Google Sheets/Excel and email (Gmail).
     - HTML clipboard applies the same conditional backgrounds as COPY TABLE: green `#a3da9d` for positive and red `#ff8080` for negative in P/L, ROI, and ROI Last Week/Month cells.
+  - UI formatting:
+    - On-screen table applies green `#a3da9d` for positive and red `#ff8080` for negative values in P/L, ROI, and ROI Last Week/Month.
 - **Data Management**
   - Delete All
   - Delete by Upload Date (per day)

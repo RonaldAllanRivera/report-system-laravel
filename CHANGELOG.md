@@ -7,6 +7,7 @@
 
 ### Docs
 - README: Mentioned COPY SUMMARY in Overview and detailed behavior under Google Binom Report.
+ - README: Documented that on-screen ROI Last Week/Month applies the same green/red conditional backgrounds as ROI.
 
 ## [0.5.10] - 2025-08-11
 ### Added
