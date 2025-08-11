@@ -1,3 +1,13 @@
+## [0.5.11] - 2025-08-11
+### Added
+- Google Binom Report: "COPY SUMMARY" button beside "COPY TABLE".
+  - Copies only per-account Account Summary rows and the bottom SUMMARY row.
+  - Columns: Account Name, Total Spend, Revenue, P/L, ROI, ROI Last Week/Month.
+  - Clipboard: TSV + HTML; no formulas; optimized for Google Sheets, Excel, and email paste (Gmail).
+
+### Docs
+- README: Mentioned COPY SUMMARY in Overview and detailed behavior under Google Binom Report.
+
 ## [0.5.10] - 2025-08-11
 ### Added
 - Google Binom Report page (`App/Filament/Pages/GoogleBinomReport.php`, view `resources/views/filament/pages/google-binom-report.blade.php`):

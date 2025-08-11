@@ -22,7 +22,7 @@
         </div>
         @forelse($sections as $section)
             @php($report = $section['report'])
-            <div x-data="{ open: false, copying: false }" class="rounded-lg border bg-white" wire:key="section-{{ $section['report_type'] }}-{{ $section['date_from'] }}-{{ $section['date_to'] }}">
+            <div x-data="{ open: false, copying: false, copyingSummary: false }" class="rounded-lg border bg-white" wire:key="section-{{ $section['report_type'] }}-{{ $section['date_from'] }}-{{ $section['date_to'] }}">
                 <div @click="open = !open" class="flex items-center justify-between px-4 py-3 cursor-pointer">
                     <div class="font-medium text-gray-700">
                         {{ \Illuminate\Support\Carbon::parse($section['date_from'])->format('F j, Y') }} — {{ \Illuminate\Support\Carbon::parse($section['date_to'])->format('F j, Y') }}
@@ -37,6 +37,11 @@
                             class="ml-2 text-red-600 hover:text-red-700 font-semibold text-xs uppercase tracking-wide {{ $report['has_rows'] ? '' : 'opacity-40 pointer-events-none' }}">
                             <span x-show="!copying">COPY TABLE</span>
                             <span x-show="copying" class="text-green-600">COPIED</span>
+                        </button>
+                        <button type="button" @click.stop="GB_copySummary($refs.tbl); copyingSummary = true; setTimeout(()=>copyingSummary=false, 1200)" title="Copy account summaries to clipboard"
+                            class="ml-2 text-indigo-600 hover:text-indigo-700 font-semibold text-xs uppercase tracking-wide {{ $report['has_rows'] ? '' : 'opacity-40 pointer-events-none' }}">
+                            <span x-show="!copyingSummary">COPY SUMMARY</span>
+                            <span x-show="copyingSummary" class="text-green-600">COPIED</span>
                         </button>
                         <svg x-bind:class="open ? 'rotate-180' : ''" class="h-4 w-4 transition-transform" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
                     </div>
@@ -233,6 +238,101 @@
     const tsv = lines.join('\n');
     const allBodyRows = bodyHtmlRows.concat(footHtmlRows);
     const html = `<table>${headHtmlRows.length?`<thead>${headHtmlRows.join('')}</thead>`:''}${allBodyRows.length?`<tbody>${allBodyRows.join('')}</tbody>`:''}</table>`;
+
+    const fallbackCopyText = (text) => {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.top = '-1000px';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+    };
+    const fallbackCopyMixed = () => {
+      const onCopy = (e) => {
+        try {
+          e.clipboardData.setData('text/html', html);
+          e.clipboardData.setData('text/plain', tsv);
+          e.preventDefault();
+        } catch(_) {}
+      };
+      document.addEventListener('copy', onCopy, { once: true });
+      document.execCommand('copy');
+    };
+    (async () => {
+      try {
+        if (navigator.clipboard && window.ClipboardItem) {
+          const item = new ClipboardItem({
+            'text/plain': new Blob([tsv], { type: 'text/plain' }),
+            'text/html': new Blob([html], { type: 'text/html' })
+          });
+          await navigator.clipboard.write([item]);
+        } else if (navigator.clipboard && window.isSecureContext && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(tsv);
+        } else {
+          try { fallbackCopyMixed(); }
+          catch(_) { fallbackCopyText(tsv); }
+        }
+      } catch (e) {
+        try { fallbackCopyMixed(); }
+        catch(_) { fallbackCopyText(tsv); }
+      }
+    })();
+  };
+
+  // Copy only Account Summary rows and the bottom SUMMARY with selected columns, no formulas
+  window.GB_copySummary = window.GB_copySummary || function(table) {
+    if (!table) return;
+    const getText = (el) => (el?.innerText || '').replace(/\s+/g, ' ').trim();
+    const headCells = Array.from(table.querySelectorAll('thead tr th'));
+    const hdrRoiPrev = headCells[6] ? getText(headCells[6]) : 'ROI LAST WEEK';
+    const headers = ['ACCOUNT NAME','TOTAL SPEND','REVENUE','P/L','ROI', hdrRoiPrev];
+
+    const outRows = [];
+    outRows.push(headers);
+
+    const tbodyRows = Array.from(table.querySelectorAll('tbody tr')).filter(tr => tr.cells && tr.cells.length >= 6);
+    tbodyRows.forEach(tr => {
+      const cells = Array.from(tr.cells);
+      const label = (cells[1] ? getText(cells[1]) : '').toLowerCase();
+      if (label === 'account summary') {
+        const account = getText(cells[0]);
+        const spend = getText(cells[2]);
+        const revenue = getText(cells[3]);
+        const pl = getText(cells[4]);
+        const roi = getText(cells[5]);
+        const roiPrev = cells[6] ? getText(cells[6]) : '';
+        outRows.push([account, spend, revenue, pl, roi, roiPrev]);
+      }
+    });
+
+    const foot = table.querySelector('tfoot tr');
+    if (foot && foot.cells && foot.cells.length >= 6) {
+      const spend = getText(foot.cells[2]);
+      const revenue = getText(foot.cells[3]);
+      const pl = getText(foot.cells[4]);
+      const roi = getText(foot.cells[5]);
+      const roiPrev = foot.cells[6] ? getText(foot.cells[6]) : '';
+      outRows.push(['SUMMARY', spend, revenue, pl, roi, roiPrev]);
+    }
+
+    // Build TSV
+    const tsv = outRows.map(r => r.join('\t')).join('\n');
+
+    // Build simple HTML table (preserves bold/italic in email clients)
+    const esc = (s) => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\"/g,'&quot;');
+    const headHtml = `<tr>${outRows[0].map(h => `<th>${esc(h)}</th>`).join('')}</tr>`;
+    const bodyHtml = outRows.slice(1).map(row => {
+      const cells = row.map((v,i) => {
+        const e = esc(v);
+        if (i===0 && v === 'SUMMARY') return `<td><b><i>${e}</i></td>`;
+        return `<td>${e}</td>`;
+      }).join('');
+      return `<tr>${cells}</tr>`;
+    }).join('');
+    const html = `<table><thead>${headHtml}</thead><tbody>${bodyHtml}</tbody></table>`;
 
     const fallbackCopyText = (text) => {
       const ta = document.createElement('textarea');

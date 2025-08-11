@@ -5,7 +5,7 @@ Modern, API-free performance marketing reporting. This Laravel 12 app ingests CS
 
 Why it stands out:
 - Business impact: turns raw exports into actionable daily/weekly/monthly insights in minutes.
-- Strong UX: Filament Admin, collapsible grouped views, and one‑click “COPY TABLE” to Google Sheets/Excel (with formulas).
+- Strong UX: Filament Admin, collapsible grouped views, and one‑click “COPY TABLE” and “COPY SUMMARY” for Google Sheets/Excel/email (formulas for tables; clean values for summaries).
 - Pragmatic engineering: resilient parsers, strict date‑range joins, and alphabetic sorting for consistent operations.
  - Data accuracy: strict one‑to‑one campaign matching (ID‑first, sanitized‑name fallback) and Binom‑only revenue rows ensure no double counting and no missing revenue.
  - Performance & scale: fast grouped views, lazy loads, and recent‑period limits on heavy pages while keeping totals consistent.
@@ -84,6 +84,10 @@ Roadmap (APIs & automation):
   - Grouping prefers the Google `account_name` so Google campaigns always appear under their expected account group.
   - ROI LAST WEEK/MONTH is read directly from the prior period’s raw tables (no recursive report rebuild).
   - Includes the same COPY TABLE behavior as above (TSV+HTML with formulas and formatting).
+  - COPY SUMMARY:
+    - Copies only per‑account Account Summary rows and the bottom SUMMARY row.
+    - Columns: Account Name, Total Spend, Revenue, P/L, ROI, ROI Last Week/Month.
+    - No formulas; outputs TSV + HTML for clean paste into Google Sheets/Excel and email (Gmail).
 - **Data Management**
   - Delete All
   - Delete by Upload Date (per day)
