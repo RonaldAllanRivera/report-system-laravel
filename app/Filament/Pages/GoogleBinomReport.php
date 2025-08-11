@@ -192,20 +192,10 @@ class GoogleBinomReport extends Page
         // Group by account and compute summaries, then sort
         $groups = collect($rows)
             ->groupBy('account')
-            ->map(function (Collection $items, string $account) use ($withPrev, $prevMap) {
+            ->map(function (Collection $items, string $account) {
                 $items = $items->sortBy(fn ($r) => strtolower($r['campaign_name']))->values();
                 $sumSpend = $items->sum('spend');
                 $sumRevenue = $items->sum('revenue');
-                $sumPrevSpend = 0.0; $sumPrevRevenue = 0.0;
-                if ($withPrev && !empty($prevMap)) {
-                    foreach ($items as $it) {
-                        $k = (string) ($it['_key'] ?? '');
-                        if ($k !== '' && isset($prevMap[$k])) {
-                            $sumPrevSpend += (float) ($prevMap[$k]['spend'] ?? 0);
-                            $sumPrevRevenue += (float) ($prevMap[$k]['revenue'] ?? 0);
-                        }
-                    }
-                }
                 return [
                     'account' => $account,
                     'rows' => $items->all(),
@@ -214,7 +204,8 @@ class GoogleBinomReport extends Page
                         'revenue' => $sumRevenue,
                         'pl' => $sumRevenue - $sumSpend,
                         'roi' => $sumSpend > 0 ? (($sumRevenue / $sumSpend) - 1.0) : null,
-                        'roi_prev' => ($sumPrevSpend > 0 ? (($sumPrevRevenue / $sumPrevSpend) - 1.0) : null),
+                        // roi_prev will be filled after we compute full previous totals per account
+                        'roi_prev' => null,
                     ],
                 ];
             })
@@ -224,18 +215,8 @@ class GoogleBinomReport extends Page
 
         $totalSpend = array_sum(array_column($rows, 'spend'));
         $totalRevenue = array_sum(array_column($rows, 'revenue'));
-        $totalPrevSpend = 0.0; $totalPrevRevenue = 0.0;
-        if ($withPrev ?? false) {
-            foreach ($rows as $r) {
-                $k = (string) ($r['_key'] ?? '');
-                if ($k !== '' && isset($prevMap[$k])) {
-                    $totalPrevSpend += (float) ($prevMap[$k]['spend'] ?? 0);
-                    $totalPrevRevenue += (float) ($prevMap[$k]['revenue'] ?? 0);
-                }
-            }
-        }
 
-        return [
+        $result = [
             'date_from' => $df,
             'date_to' => $dt,
             'report_type' => $rt,
@@ -245,10 +226,50 @@ class GoogleBinomReport extends Page
                 'revenue' => $totalRevenue,
                 'pl' => $totalRevenue - $totalSpend,
                 'roi' => $totalSpend > 0 ? (($totalRevenue / $totalSpend) - 1.0) : null,
-                'roi_prev' => ($totalPrevSpend > 0 ? (($totalPrevRevenue / $totalPrevSpend) - 1.0) : null),
+                'roi_prev' => null,
             ],
             'has_rows' => count($rows) > 0,
         ];
+
+        // Override Account Summary and SUMMARY roi_prev using full previous-period totals
+        if ($withPrev ?? false) {
+            // Compute previous date range again (same logic as above)
+            $prevDf2 = $df; $prevDt2 = $dt;
+            if ($rt === 'weekly') {
+                $prevDf2 = (string) \Illuminate\Support\Carbon::parse($df)->subDays(7)->toDateString();
+                $prevDt2 = (string) \Illuminate\Support\Carbon::parse($dt)->subDays(7)->toDateString();
+            } elseif ($rt === 'monthly') {
+                $prevDf2 = (string) \Illuminate\Support\Carbon::parse($df)->subMonthNoOverflow()->startOfMonth()->toDateString();
+                $prevDt2 = (string) \Illuminate\Support\Carbon::parse($df)->subMonthNoOverflow()->endOfMonth()->toDateString();
+            }
+            $prevReport = $this->buildReportDataFor($prevDf2, $prevDt2, $rt, false);
+            $prevByAccount = [];
+            foreach ($prevReport['groups'] as $g) {
+                $acc = (string) ($g['account'] ?? '');
+                if ($acc === '') continue;
+                $prevByAccount[$acc] = [
+                    'spend' => (float) ($g['summary']['spend'] ?? 0),
+                    'revenue' => (float) ($g['summary']['revenue'] ?? 0),
+                ];
+            }
+            // Fill group roi_prev from full previous totals by account
+            for ($i = 0; $i < count($result['groups']); $i++) {
+                $acc = (string) ($result['groups'][$i]['account'] ?? '');
+                if ($acc !== '' && isset($prevByAccount[$acc])) {
+                    $ps = (float) $prevByAccount[$acc]['spend'];
+                    $pr = (float) $prevByAccount[$acc]['revenue'];
+                    $result['groups'][$i]['summary']['roi_prev'] = $ps > 0 ? (($pr / $ps) - 1.0) : null;
+                } else {
+                    $result['groups'][$i]['summary']['roi_prev'] = null;
+                }
+            }
+            // Fill totals roi_prev from full previous-period overall totals
+            $psT = (float) ($prevReport['totals']['spend'] ?? 0);
+            $prT = (float) ($prevReport['totals']['revenue'] ?? 0);
+            $result['totals']['roi_prev'] = $psT > 0 ? (($prT / $psT) - 1.0) : null;
+        }
+
+        return $result;
     }
 
     public function buildReportData(): array

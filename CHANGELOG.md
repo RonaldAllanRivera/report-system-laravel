@@ -1,4 +1,7 @@
 ## [0.5.11] - 2025-08-11
+### Changed
+- Google Binom Report: Account Summary and bottom SUMMARY “ROI Last Week/Month” now use full previous-period totals per account and overall (all campaigns from the previous period), not just the cohort of campaigns listed this week.
+
 ### Added
 - Google Binom Report: "COPY SUMMARY" button beside "COPY TABLE".
   - Copies only per-account Account Summary rows and the bottom SUMMARY row.

@@ -84,7 +84,7 @@
                                         @php($gRoi = $group['summary']['roi'] ?? null)
                                         <td class="px-3 py-2 text-gray-700" style="{{ (($gRoi ?? 0) > 0) ? 'background-color:#a3da9d' : ((($gRoi ?? 0) < 0) ? 'background-color:#ff8080' : '') }}">{{ $this->fmtPercent($group['summary']['roi'] ?? null) }}</td>
                                         @php($gRoiPrev = $group['summary']['roi_prev'] ?? null)
-                                        <td class="px-3 py-2 text-gray-700" style="{{ (($gRoiPrev ?? 0) > 0) ? 'background-color:#a3da9d' : ((($gRoiPrev ?? 0) < 0) ? 'background-color:#ff8080' : '') }}">{{ $this->fmtPercent($group['summary']['roi_prev'] ?? null) }}</td>
+                                        <td class="px-3 py-2 text-gray-700" data-roi-prev="{{ $this->fmtPercent($group['summary']['roi_prev'] ?? null) }}" style="{{ (($gRoiPrev ?? 0) > 0) ? 'background-color:#a3da9d' : ((($gRoiPrev ?? 0) < 0) ? 'background-color:#ff8080' : '') }}">{{ $this->fmtPercent($group['summary']['roi_prev'] ?? null) }}</td>
                                         <td class="px-3 py-2"></td>
                                     </tr>
                                     <tr class="border-0">
@@ -102,7 +102,7 @@
                                     @php($tRoi = $report['totals']['roi'] ?? null)
                                     <td class="px-3 py-2 text-gray-700" style="{{ (($tRoi ?? 0) > 0) ? 'background-color:#a3da9d' : ((($tRoi ?? 0) < 0) ? 'background-color:#ff8080' : '') }}">{{ $this->fmtPercent($report['totals']['roi'] ?? null) }}</td>
                                     @php($tRoiPrev = $report['totals']['roi_prev'] ?? null)
-                                    <td class="px-3 py-2 text-gray-700" style="{{ (($tRoiPrev ?? 0) > 0) ? 'background-color:#a3da9d' : ((($tRoiPrev ?? 0) < 0) ? 'background-color:#ff8080' : '') }}">{{ $this->fmtPercent($report['totals']['roi_prev'] ?? null) }}</td>
+                                    <td class="px-3 py-2 text-gray-700" data-roi-prev="{{ $this->fmtPercent($report['totals']['roi_prev'] ?? null) }}" style="{{ (($tRoiPrev ?? 0) > 0) ? 'background-color:#a3da9d' : ((($tRoiPrev ?? 0) < 0) ? 'background-color:#ff8080' : '') }}">{{ $this->fmtPercent($report['totals']['roi_prev'] ?? null) }}</td>
                                     <td class="px-3 py-2"></td>
                                 </tr>
                             </tfoot>
@@ -168,24 +168,29 @@
       let ci = 0;
       cells.forEach(td => {
         const span = td.colSpan || 1;
-        const raw = (td.innerText||'').replace(/\s+/g,' ').trim();
+        const rawOrig = (td.innerText||'').replace(/\s+/g,' ').trim();
         const tdBg = (td && td.style && td.style.backgroundColor) ? td.style.backgroundColor : '';
         for (let i=0; i<span && ci<colCount; i++) {
           if (i===0) {
-            let val = raw;
+            let val = rawOrig;
             if (!isHead) {
               const col = ci + 1; // 1-indexed
+              // For Account Summary and SUMMARY rows, ROI Last (col 7) may not have innerText; use data-roi-prev fallback.
+              if ((isAccountSummary || isSummaryRow) && col === 7) {
+                const dp = td.getAttribute('data-roi-prev') || (td.dataset ? td.dataset.roiPrev : '') || '';
+                if (!val && dp) val = dp;
+              }
               // Normalize numeric $ columns (TOTAL SPEND=3, REVENUE=4, P/L=5)
               if (col===3 || col===4 || col===5) {
                 val = moneyToNum(val) || '';
               }
               // P/L formula (col 5) => =D{row}-C{row}
               if (col===5) {
-                val = raw ? `=D${rowNumber}-C${rowNumber}` : '';
+                val = rawOrig ? `=D${rowNumber}-C${rowNumber}` : '';
               }
               // ROI formula (col 6) => percent string using TEXT to ensure % on paste
               if (col===6) {
-                val = raw ? `=IF(C${rowNumber}>0, TEXT((D${rowNumber}/C${rowNumber})-1, "0.00%"), "")` : '';
+                val = rawOrig ? `=IF(C${rowNumber}>0, TEXT((D${rowNumber}/C${rowNumber})-1, "0.00%"), "")` : '';
               }
               // Account Summary Spend/Revenue formulas over the group's data rows
               if (isAccountSummary && groupStartRow !== null && groupEndRow !== null) {
@@ -220,7 +225,13 @@
               (isAccountSummary && (col===3 || col===4)) ||
               (isSummaryRow && (col===3 || col===4))
             ));
-            const htmlVal = isHead ? raw : (isFormulaCell ? val : raw);
+            // For HTML, apply the same ROI Last fallback for Account Summary/SUMMARY in col 7
+            let rawForHtml = rawOrig;
+            if (!isHead && (isAccountSummary || isSummaryRow) && col === 7 && !rawForHtml) {
+              const dp = td.getAttribute('data-roi-prev') || (td.dataset ? td.dataset.roiPrev : '') || '';
+              if (dp) rawForHtml = dp;
+            }
+            const htmlVal = isHead ? rawForHtml : (isFormulaCell ? val : rawForHtml);
             const escaped = escapeHtml(htmlVal);
             const labelBoldItalic = (!isHead && (isAccountSummary || isSummaryRow) && ci === 1);
             const content = labelBoldItalic ? `<b><i>${escaped}</i></b>` : escaped;

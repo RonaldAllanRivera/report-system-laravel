@@ -83,6 +83,8 @@ Roadmap (APIs & automation):
     - Any unmatched Binom rows with `revenue > 0` or `leads > 0` are shown as Binom‑only rows to preserve totals.
   - Grouping prefers the Google `account_name` so Google campaigns always appear under their expected account group.
   - ROI LAST WEEK/MONTH is read directly from the prior period’s raw tables (no recursive report rebuild).
+    - Account Summary and the bottom SUMMARY “ROI Last Week/Month” use full previous-period totals per account and overall (all campaigns from the previous period), not just this week’s cohort.
+    - Row-level “ROI Last Week/Month” remains per-campaign, i.e., shown only when a previous-period match exists for that campaign.
   - Includes the same COPY TABLE behavior as above (TSV+HTML with formulas and formatting).
   - COPY SUMMARY:
     - Copies only per‑account Account Summary rows and the bottom SUMMARY row.
