@@ -1,3 +1,12 @@
+## [0.5.13] - 2025-08-16
+### Changed
+- Google Binom Report: COPY TABLE now shows the full date range in the top Date row for Weekly/Monthly, formatted as `DD/MM - DD/MM`.
+- Rumble Binom Report: COPY TABLE now shows `DD/MM - DD/MM` for Weekly/Monthly and keeps a single `DD/MM` for Daily.
+- Both reports: COPY TABLE buttons pass the correctly formatted date string; formulas remain unchanged and correct (date row stays as row 1).
+
+### Docs
+- README: Documented Date row behavior for Daily vs Weekly/Monthly and noted that clipboard HTML preserves the header background color (`#dadada`).
+
 ## [0.5.12] - 2025-08-16
 ### Added
 - Rumble Binom Report: COPY TABLE now includes a top Date row in `DD/MM` format as row 1 (bold, no background). Header becomes row 2; data starts at row 3.

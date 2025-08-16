@@ -69,7 +69,9 @@ Roadmap (APIs & automation):
     - Formulas are preserved in both TSV and HTML for P/L, ROI, Account Summary (Spend/Revenue), and SUMMARY (Spend/Revenue)
     - Injects formulas for P/L and ROI columns (data rows, Account Summary rows, and SUMMARY row) for Google Sheets/Excel paste
     - Dynamic formulas for Account Summary Spend/Revenue (sums over each account's data rows) and for the bottom SUMMARY row (sums all Account Summaries), supporting any number of accounts
-    - Adds a top Date row in `DD/MM` format as row 1 (bold, no background). Header is row 2; data starts at row 3. All formulas are adjusted accordingly.
+    - Adds a top Date row as row 1 (bold, no background). Header is row 2; data starts at row 3. All formulas are adjusted accordingly.
+      - Daily: `DD/MM`
+      - Weekly/Monthly: `DD/MM - DD/MM`
     - Clipboard HTML preserves the header background color (`#dadada`) so pasted tables maintain header styling.
   - UI formatting:
     - Account Summary rows and the bottom SUMMARY row are bold.
@@ -90,6 +92,8 @@ Roadmap (APIs & automation):
     - Row-level “ROI Last Week/Month” remains per-campaign, i.e., shown only when a previous-period match exists for that campaign.
     - A header toggle lets you switch “ROI Last” summary behavior between Full Totals and Cohort. The column header shows the current mode in parentheses (Full/Cohort). Default is Full.
   - Includes the same COPY TABLE behavior as above (TSV+HTML with formulas and formatting).
+    - Date row matches the section range: Weekly/Monthly use `DD/MM - DD/MM`.
+    - Clipboard HTML preserves the header background color (`#dadada`).
   - Clipboard reflects mode: Both COPY TABLE and COPY SUMMARY copy values as currently rendered, matching the selected ROI Last mode (Full/Cohort) for Account Summary and SUMMARY.
   - Tooltips: Hover the Full/Cohort buttons (page header and section header) for a quick explanation of each mode.
   - COPY SUMMARY:

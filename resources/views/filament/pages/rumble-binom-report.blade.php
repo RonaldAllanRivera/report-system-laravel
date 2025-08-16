@@ -44,7 +44,7 @@
                         <span class="font-semibold">{{ $this->fmtMoney($report['totals']['revenue'] ?? 0) }}
                             revenue</span>
                         <button type="button"
-                            @click.stop="RB_copyTable($refs.tbl, '{{ \Illuminate\Support\Carbon::parse($section['date_to'])->format('d/m') }}'); copying = true; setTimeout(()=>copying=false, 1200)"
+                            @click.stop="RB_copyTable($refs.tbl, '{{ ($section['report_type'] ?? 'daily') === 'daily' ? \Illuminate\Support\Carbon::parse($section['date_to'])->format('d/m') : (\Illuminate\Support\Carbon::parse($section['date_from'])->format('d/m') . ' - ' . \Illuminate\Support\Carbon::parse($section['date_to'])->format('d/m')) }}'); copying = true; setTimeout(()=>copying=false, 1200)"
                             title="Copy this table to clipboard"
                             class="ml-2 text-red-600 hover:text-red-700 font-semibold text-xs uppercase tracking-wide {{ $report['has_rows'] ? '' : 'opacity-40 pointer-events-none' }}">
                             <span x-show="!copying">COPY TABLE</span>

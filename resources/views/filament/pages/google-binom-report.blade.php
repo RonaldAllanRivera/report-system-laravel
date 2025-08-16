@@ -33,7 +33,7 @@
                         <span class="font-semibold">{{ $this->fmtMoney($report['totals']['spend'] ?? 0) }} spent</span>
                         <span class="text-gray-400">·</span>
                         <span class="font-semibold">{{ $this->fmtMoney($report['totals']['revenue'] ?? 0) }} revenue</span>
-                        <button type="button" @click.stop="GB_copyTable($refs.tbl); copying = true; setTimeout(()=>copying=false, 1200)" title="Copy this table to clipboard"
+                        <button type="button" @click.stop="GB_copyTable($refs.tbl, '{{ \Illuminate\Support\Carbon::parse($section['date_from'])->format('d/m') }} - {{ \Illuminate\Support\Carbon::parse($section['date_to'])->format('d/m') }}'); copying = true; setTimeout(()=>copying=false, 1200)" title="Copy this table to clipboard"
                             class="ml-2 text-red-600 hover:text-red-700 font-semibold text-xs uppercase tracking-wide {{ $report['has_rows'] ? '' : 'opacity-40 pointer-events-none' }}">
                             <span x-show="!copying">COPY TABLE</span>
                             <span x-show="copying" class="text-green-600">COPIED</span>
@@ -155,7 +155,7 @@
 </x-filament-panels::page>
 
 <script>
-  window.GB_copyTable = window.GB_copyTable || function(table) {
+  window.GB_copyTable = window.GB_copyTable || function(table, dateStr) {
     if (!table) return;
     const headRow = table.querySelector('thead tr');
     const colCount = headRow ? Array.from(headRow.cells).reduce((a,c)=>a+(c.colSpan||1),0) : 8;
@@ -170,8 +170,14 @@
     let groupEndRow = null;
     const accountSummaryRows = [];
 
-    const lines = rows.map((tr, idx) => {
-      const rowNumber = idx + 1;
+    // Add date row at the top (row 1)
+    const dateRow = new Array(colCount).fill('');
+    dateRow[0] = dateStr || '';
+    const dateHtmlRow = `<tr><td colspan="${colCount}" style="text-align:left;font-weight:bold;"><b>${escapeHtml(dateStr || '')}</b></td></tr>`;
+    headHtmlRows.push(dateHtmlRow);
+
+    const lines = [dateRow.join('\t')].concat(rows.map((tr, idx) => {
+      const rowNumber = idx + 2; // date row is 1, header is 2, data starts at 3
       const isHead = tr.parentElement && tr.parentElement.tagName.toLowerCase()==='thead';
       const cells = Array.from(tr.cells);
       const parentTag = tr.parentElement ? tr.parentElement.tagName.toLowerCase() : '';
@@ -243,7 +249,11 @@
 
             const tag = isHead ? 'th' : 'td';
             let cellStyle = '';
-            if (tdBg) cellStyle += `background-color:${tdBg};`;
+            if (isHead) {
+              cellStyle += 'background-color:#dadada;';
+            } else if (tdBg) {
+              cellStyle += `background-color:${tdBg};`;
+            }
             if ((!isHead && (isAccountSummary || isSummaryRow) && ci === 1)) cellStyle += 'font-style:italic;';
             const col = ci + 1;
             const isFormulaCell = (!isHead && (
@@ -273,7 +283,7 @@
         groupEndRow = null;
       }
       return out.join('\t');
-    });
+    }));
     const tsv = lines.join('\n');
     const allBodyRows = bodyHtmlRows.concat(footHtmlRows);
     const html = `<table>${headHtmlRows.length?`<thead>${headHtmlRows.join('')}</thead>`:''}${allBodyRows.length?`<tbody>${allBodyRows.join('')}</tbody>`:''}</table>`;
