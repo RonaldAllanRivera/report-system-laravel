@@ -1,3 +1,15 @@
+## [0.5.12] - 2025-08-16
+### Added
+- Rumble Binom Report: COPY TABLE now includes a top Date row in `DD/MM` format as row 1 (bold, no background). Header becomes row 2; data starts at row 3.
+
+### Changed
+- Rumble Binom Report: Table header uses `#dadada` background on-screen and is preserved in the copied HTML so spreadsheet pastes keep the header styling.
+- COPY TABLE formulas adjusted to respect the new row offset while preserving P/L, ROI, Account Summary, and SUMMARY computations.
+- COPY TABLE button passes `date_to` as `DD/MM` into the copy function.
+
+### Docs
+- README: Documented header background styling and Date row behavior (row order, no background) and that clipboard HTML preserves the header background color.
+
 ## [0.5.11] - 2025-08-11
 ### Changed
 - Google Binom Report: Account Summary and bottom SUMMARY “ROI Last Week/Month” now use full previous-period totals per account and overall (all campaigns from the previous period), not just the cohort of campaigns listed this week.

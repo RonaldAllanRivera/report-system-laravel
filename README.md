@@ -69,11 +69,14 @@ Roadmap (APIs & automation):
     - Formulas are preserved in both TSV and HTML for P/L, ROI, Account Summary (Spend/Revenue), and SUMMARY (Spend/Revenue)
     - Injects formulas for P/L and ROI columns (data rows, Account Summary rows, and SUMMARY row) for Google Sheets/Excel paste
     - Dynamic formulas for Account Summary Spend/Revenue (sums over each account's data rows) and for the bottom SUMMARY row (sums all Account Summaries), supporting any number of accounts
+    - Adds a top Date row in `DD/MM` format as row 1 (bold, no background). Header is row 2; data starts at row 3. All formulas are adjusted accordingly.
+    - Clipboard HTML preserves the header background color (`#dadada`) so pasted tables maintain header styling.
   - UI formatting:
     - Account Summary rows and the bottom SUMMARY row are bold.
     - P/L and ROI cells have conditional backgrounds: positive `#a3da9d`, negative `#ff8080` (zero/empty = default background).
     - Implemented via inline styles (not Tailwind bg classes) to satisfy IDE lints.
     - Clipboard HTML also bold+italicizes the "Account Summary" and "SUMMARY" labels in column B.
+    - Header row uses `#dadada` background on-screen.
 \n+- **Google Binom Report**
   - Merges `Google Data` and `Binom Google Spent Data` for Weekly/Monthly reports.
   - Columns: Account, Campaign, Total Spend, Revenue, P/L, ROI, ROI LAST WEEK/MONTH, Sales.
