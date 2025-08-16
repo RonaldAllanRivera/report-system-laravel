@@ -101,6 +101,7 @@ Roadmap (APIs & automation):
     - Columns: Account Name, Total Spend, Revenue, P/L, ROI, ROI Last Week/Month.
     - No formulas; outputs TSV + HTML for clean paste into Google Sheets/Excel and email (Gmail).
     - HTML clipboard applies the same conditional backgrounds as COPY TABLE: green `#a3da9d` for positive and red `#ff8080` for negative in P/L, ROI, and ROI Last Week/Month cells.
+    - Header row in the clipboard HTML uses `#dadada` background.
   - UI formatting:
     - On-screen table applies green `#a3da9d` for positive and red `#ff8080` for negative values in P/L, ROI, and ROI Last Week/Month.
 - **Data Management**

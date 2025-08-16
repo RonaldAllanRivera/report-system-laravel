@@ -392,7 +392,7 @@
       const n = parseFloat(t);
       return isNaN(n) ? NaN : (neg ? -Math.abs(n) : n);
     };
-    const headHtml = `<tr>${outRows[0].map(h => `<th>${esc(h)}</th>`).join('')}</tr>`;
+    const headHtml = `<tr>${outRows[0].map(h => `<th style="background-color:#dadada;">${esc(h)}</th>`).join('')}</tr>`;
     const bodyHtml = outRows.slice(1).map(row => {
       const tds = row.map((v,i) => {
         const e = esc(v);
