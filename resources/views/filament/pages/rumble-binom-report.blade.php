@@ -36,7 +36,13 @@
                         {{ \Illuminate\Support\Carbon::parse($section['date_to'])->format('F j, Y') }}
                         <span
                             class="ml-2 text-[10px] rounded bg-gray-100 px-1.5 py-0.5 text-gray-600">{{ strtoupper($section['report_type'] ?? ($report['report_type'] ?? '')) }}</span>
-                        <span class="text-xs text-gray-500">({{ $section['count'] }} entries)</span>
+                        @php($visibleCount = 0)
+                        @foreach (($report['groups'] ?? []) as $g)
+                            @foreach (($g['rows'] ?? []) as $r)
+                                @php($visibleCount += ((float)($r['spend'] ?? 0) === 0.0 && (float)($r['revenue'] ?? 0) === 0.0) ? 0 : 1)
+                            @endforeach
+                        @endforeach
+                        <span class="text-xs text-gray-500">({{ $visibleCount }} entries)</span>
                     </div>
                     <div class="text-sm text-gray-600 flex items-center gap-2">
                         <span class="font-semibold">{{ $this->fmtMoney($report['totals']['spend'] ?? 0) }} spent</span>
@@ -75,7 +81,12 @@
                             </thead>
                             <tbody>
                                 @foreach ($report['groups'] as $group)
+                                    @php($hasVisibleRow = false)
                                     @foreach ($group['rows'] as $row)
+                                        @php($sp = (float)($row['spend'] ?? 0))
+                                        @php($rv = (float)($row['revenue'] ?? 0))
+                                        @continue($sp === 0.0 && $rv === 0.0)
+                                        @php($hasVisibleRow = true)
                                         <tr class="border-t">
                                             <td class="px-3 py-2 text-gray-600">{{ $row['account'] }}</td>
                                             <td class="px-3 py-2 text-gray-600">{{ $row['campaign_name'] }}</td>
@@ -99,28 +110,30 @@
                                             </td>
                                         </tr>
                                     @endforeach
-                                    <tr class="border-t bg-gray-50 font-semibold">
-                                        <td class="px-3 py-2 text-gray-700">{{ $group['account'] }}</td>
-                                        <td class="px-3 py-2 italic text-gray-700">Account Summary</td>
-                                        <td class="px-3 py-2"></td>
-                                        <td class="px-3 py-2 text-gray-700">
-                                            {{ $this->fmtMoney($group['summary']['spend'] ?? 0) }}</td>
-                                        <td class="px-3 py-2 text-gray-700">
-                                            {{ $this->fmtMoney($group['summary']['revenue'] ?? 0) }}</td>
-                                        <td class="px-3 py-2 text-gray-700"
-                                            style="{{ ($group['summary']['pl'] ?? 0) > 0 ? 'background-color:#a3da9d' : (($group['summary']['pl'] ?? 0) < 0 ? 'background-color:#ff8080' : '') }}">
-                                            {{ $this->fmtMoney($group['summary']['pl'] ?? 0) }}</td>
-                                        @php($gRoi = $group['summary']['roi'] ?? null)
-                                        <td class="px-3 py-2 text-gray-700"
-                                            style="{{ ($gRoi ?? 0) > 0 ? 'background-color:#a3da9d' : (($gRoi ?? 0) < 0 ? 'background-color:#ff8080' : '') }}">
-                                            {{ $this->fmtPercent($group['summary']['roi'] ?? null) }}</td>
-                                        <td class="px-3 py-2"></td>
-                                        <td class="px-3 py-2"></td>
-                                        <td class="px-3 py-2"></td>
-                                    </tr>
-                                    <tr class="border-0">
-                                        <td colspan="10" class="px-3 py-2"></td>
-                                    </tr>
+                                    @if ($hasVisibleRow)
+                                        <tr class="border-t bg-gray-50 font-semibold">
+                                            <td class="px-3 py-2 text-gray-700">{{ $group['account'] }}</td>
+                                            <td class="px-3 py-2 italic text-gray-700">Account Summary</td>
+                                            <td class="px-3 py-2"></td>
+                                            <td class="px-3 py-2 text-gray-700">
+                                                {{ $this->fmtMoney($group['summary']['spend'] ?? 0) }}</td>
+                                            <td class="px-3 py-2 text-gray-700">
+                                                {{ $this->fmtMoney($group['summary']['revenue'] ?? 0) }}</td>
+                                            <td class="px-3 py-2 text-gray-700"
+                                                style="{{ ($group['summary']['pl'] ?? 0) > 0 ? 'background-color:#a3da9d' : (($group['summary']['pl'] ?? 0) < 0 ? 'background-color:#ff8080' : '') }}">
+                                                {{ $this->fmtMoney($group['summary']['pl'] ?? 0) }}</td>
+                                            @php($gRoi = $group['summary']['roi'] ?? null)
+                                            <td class="px-3 py-2 text-gray-700"
+                                                style="{{ ($gRoi ?? 0) > 0 ? 'background-color:#a3da9d' : (($gRoi ?? 0) < 0 ? 'background-color:#ff8080' : '') }}">
+                                                {{ $this->fmtPercent($group['summary']['roi'] ?? null) }}</td>
+                                            <td class="px-3 py-2"></td>
+                                            <td class="px-3 py-2"></td>
+                                            <td class="px-3 py-2"></td>
+                                        </tr>
+                                        <tr class="border-0">
+                                            <td colspan="10" class="px-3 py-2"></td>
+                                        </tr>
+                                    @endif
                                 @endforeach
                             </tbody>
                             <tfoot class="bg-gray-50">
