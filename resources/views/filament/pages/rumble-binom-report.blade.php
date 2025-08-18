@@ -28,7 +28,7 @@
         </div>
         @forelse($sections as $section)
             @php($report = $section['report'])
-            <div x-data="{ open: false, copying: false }" class="rounded-lg border bg-white"
+            <div x-data="{ open: false, copying: false, creating: false }" class="rounded-lg border bg-white"
                 wire:key="section-{{ $section['report_type'] }}-{{ $section['date_from'] }}-{{ $section['date_to'] }}">
                 <div @click="open = !open" class="flex items-center justify-between px-4 py-3 cursor-pointer">
                     <div class="font-medium text-gray-700">
@@ -55,6 +55,17 @@
                             class="ml-2 text-red-600 hover:text-red-700 font-semibold text-xs uppercase tracking-wide {{ $report['has_rows'] ? '' : 'opacity-40 pointer-events-none' }}">
                             <span x-show="!copying">COPY TABLE</span>
                             <span x-show="copying" class="text-green-600">COPIED</span>
+                        </button>
+                        <button type="button"
+                            @click.stop="creating=true; RB_createSheet($refs.tbl,
+                              '{{ ($section['report_type'] ?? 'daily') === 'daily' ? \Illuminate\Support\Carbon::parse($section['date_to'])->format('d/m') : (\Illuminate\Support\Carbon::parse($section['date_from'])->format('d/m') . ' - ' . \Illuminate\Support\Carbon::parse($section['date_to'])->format('d/m')) }}',
+                              '{{ $section['report_type'] ?? 'daily' }}',
+                              '{{ $section['date_to'] }}'
+                            ).finally(()=>creating=false)"
+                            title="Create a Google Sheet with this table"
+                            class="ml-2 text-blue-600 hover:text-blue-700 font-semibold text-xs uppercase tracking-wide {{ $report['has_rows'] ? '' : 'opacity-40 pointer-events-none' }}">
+                            <span x-show="!creating">CREATE SHEET</span>
+                            <span x-show="creating" class="text-green-600">CREATING…</span>
                         </button>
                         <svg x-bind:class="open ? 'rotate-180' : ''" class="h-4 w-4 transition-transform"
                             xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -389,5 +400,179 @@
                 }
             }
         })();
+    };
+
+    window.RB_createSheet = window.RB_createSheet || async function(table, dateStr, cadence, dateTo) {
+        if (!table) return;
+
+        // Open a tab immediately to avoid popup blockers, we'll navigate it later
+        let pendingWin = null;
+        try { pendingWin = window.open('', '_blank'); } catch (_) {}
+
+        const headRow = table.querySelector('thead tr');
+        const colCount = headRow ? Array.from(headRow.cells).reduce((a, c) => a + (c.colSpan || 1), 0) : 10;
+        const rows = Array.from(table.querySelectorAll('thead tr, tbody tr, tfoot tr'));
+        const moneyToNum = s => (s || '').replace(/[^0-9.\-]/g, '');
+
+        const values = [];
+        // top date row
+        const dateRow = new Array(colCount).fill('');
+        dateRow[0] = dateStr || '';
+        values.push(dateRow);
+
+        // Track per-account ranges and account summary rows
+        let groupStartRow = null;
+        let groupEndRow = null;
+        const accountSummaryRows = [];
+
+        const isHeadTag = (tr) => tr.parentElement && tr.parentElement.tagName.toLowerCase() === 'thead';
+
+        rows.forEach((tr, idx) => {
+            const rowNumber = idx + 2; // date row is 1
+            const isHead = isHeadTag(tr);
+            const cells = Array.from(tr.cells);
+            const parentTag = tr.parentElement ? tr.parentElement.tagName.toLowerCase() : '';
+            const secondText = (cells[1] ? (cells[1].innerText || '') : '').replace(/\s+/g, ' ').trim();
+            const isAccountSummary = !isHead && parentTag === 'tbody' && secondText.toLowerCase() === 'account summary';
+            const isSpacer = !isHead && parentTag === 'tbody' && cells.length === 1 && ((cells[0].colSpan || 1) >= (headRow ? headRow.cells.length : 10));
+            const isFoot = parentTag === 'tfoot';
+            const isSummaryRow = isFoot && secondText.toLowerCase() === 'summary';
+            const isDataRow = !isHead && !isAccountSummary && !isSpacer && !isFoot;
+
+            if (isDataRow) {
+                if (groupStartRow === null) groupStartRow = rowNumber;
+                groupEndRow = rowNumber;
+            }
+            if (isAccountSummary) accountSummaryRows.push(rowNumber);
+
+            const out = new Array(colCount).fill('');
+            cells.forEach((td, ci0) => {
+                const span = td.colSpan || 1;
+                const raw = (td.innerText || '').replace(/\s+/g, ' ').trim();
+                let ci = ci0;
+                if (span > 1) ci = ci0; // only write into the first spanned column
+                if (ci < colCount) {
+                    let val = raw;
+                    if (!isHead) {
+                        const col = ci + 1;
+                        if (col === 3 || col === 4 || col === 5 || col === 9 || col === 10) {
+                            val = moneyToNum(val) || '';
+                        }
+                        if (col === 6) {
+                            val = raw ? `=E${rowNumber}-D${rowNumber}` : '';
+                        }
+                        if (col === 7) {
+                            // Keep numeric ROI so number format + conditional formatting can apply
+                            val = raw ? `=IF(D${rowNumber}>0, (E${rowNumber}/D${rowNumber})-1, "")` : '';
+                        }
+                        if (isAccountSummary && groupStartRow !== null && groupEndRow !== null) {
+                            if (col === 4) val = `=SUM(D${groupStartRow}:D${groupEndRow})`;
+                            if (col === 5) val = `=SUM(E${groupStartRow}:E${groupEndRow})`;
+                        }
+                        if (isSummaryRow && accountSummaryRows.length) {
+                            if (col === 4) val = `=${accountSummaryRows.map(r => `D${r}`).join('+')}`;
+                            if (col === 5) val = `=${accountSummaryRows.map(r => `E${r}`).join('+')}`;
+                        }
+                    }
+                    out[ci] = val;
+                }
+            });
+
+            // push header/body/footer rows
+            values.push(out);
+
+            if (isAccountSummary) {
+                groupStartRow = null;
+                groupEndRow = null;
+            }
+        });
+
+        try {
+            const payload = {
+                title: `${dateStr || ''} - Rumble Ads`,
+                values,
+                cadence,
+                date_to: dateTo,
+            };
+
+            const resp = await fetch('{{ route('google.sheets.rumble.create') }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify(payload)
+            });
+            if (resp.status === 401) {
+                const data = await resp.json().catch(() => ({}));
+                if (data && data.authorizeUrl) {
+                    // Attach listener BEFORE navigating, to avoid race where popup posts before listener is ready
+                    const onMsg = async (ev) => {
+                        try {
+                            if (!ev) return;
+                            // Only accept messages from our own origin
+                            if (ev.origin !== window.location.origin) return;
+                            if (!ev.data || ev.data.type !== 'google-auth-success') return;
+                            window.removeEventListener('message', onMsg);
+                            const retry = await fetch('{{ route('google.sheets.rumble.create') }}', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                                },
+                                body: JSON.stringify(payload)
+                            });
+                            if (!retry.ok) {
+                                const errData = await retry.json().catch(() => null);
+                                const msg = errData && (errData.message || errData.error) ? (errData.message || errData.error) : `HTTP ${retry.status}`;
+                                alert('Failed to create Google Sheet after authorization: ' + msg);
+                                try { if (pendingWin && !pendingWin.closed) pendingWin.close(); } catch (_) {}
+                                return;
+                            }
+                            const done = await retry.json();
+                            if (done && done.spreadsheetUrl) {
+                                if (pendingWin && !pendingWin.closed) pendingWin.location.href = done.spreadsheetUrl; else {
+                                    try { pendingWin = window.open(done.spreadsheetUrl, '_blank'); } catch (_) {}
+                                }
+                            }
+                        } catch (e) {
+                            console.error(e);
+                            alert('Failed to create Google Sheet after authorization.');
+                            try { if (pendingWin && !pendingWin.closed) pendingWin.close(); } catch (_) {}
+                        }
+                    };
+                    window.addEventListener('message', onMsg);
+
+                    // Navigate popup after listener is ready
+                    const authUrl = data.authorizeUrl;
+                    if (pendingWin && !pendingWin.closed) pendingWin.location.href = authUrl; else {
+                        try { pendingWin = window.open(authUrl, '_blank'); } catch (_) {}
+                    }
+
+                    // Fallback timeout: if message never arrives, clean up and notify
+                    setTimeout(() => {
+                        try { window.removeEventListener('message', onMsg); } catch (_) {}
+                        try { if (pendingWin && !pendingWin.closed) pendingWin.close(); } catch (_) {}
+                        alert('Authorization timed out. Please try again.');
+                    }, 120000);
+                    return;
+                }
+            }
+            if (!resp.ok) {
+                const errData = await resp.json().catch(() => null);
+                const msg = errData && (errData.message || errData.error) ? (errData.message || errData.error) : `HTTP ${resp.status}`;
+                alert('Failed to create Google Sheet: ' + msg);
+                try { if (pendingWin && !pendingWin.closed) pendingWin.close(); } catch (_) {}
+                return;
+            }
+            const data = await resp.json();
+            if (data && data.spreadsheetUrl) {
+                if (pendingWin && !pendingWin.closed) pendingWin.location.href = data.spreadsheetUrl; else window.open(data.spreadsheetUrl, '_blank');
+            }
+        } catch (e) {
+            console.error(e);
+            alert('Failed to create Google Sheet.');
+            try { if (pendingWin && !pendingWin.closed) pendingWin.close(); } catch (_) {}
+        }
     };
 </script>

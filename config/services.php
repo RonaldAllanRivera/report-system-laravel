@@ -35,4 +35,12 @@ return [
         ],
     ],
 
+    'google' => [
+        'client_id' => env('GOOGLE_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CLIENT_SECRET'),
+        'redirect' => env('GOOGLE_REDIRECT_URI'),
+        'scopes' => explode(' ', env('GOOGLE_SCOPES', 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file')),
+        'app_name' => env('GOOGLE_APP_NAME', 'Report System'),
+    ],
+
 ];

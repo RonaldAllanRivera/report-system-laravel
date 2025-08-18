@@ -1,3 +1,21 @@
+## [0.6.0] - 2025-08-18
+### Added
+- Google Sheets export on Rumble Binom Report: blue "CREATE SHEET" button builds a formatted Google Sheet mirroring the on-screen table.
+  - Spreadsheet: renames first tab to `Report`, inserts a bold Date row (row 1), gray `#dadada` header (row 2), data from row 3.
+  - Formulas: P/L (`=E-D`) and ROI (`=IF(D>0,(E/D)-1, "")`) on data rows; dynamic `SUM` for Account Summary and SUMMARY.
+  - Formats: currency on C/D/E/I/J, percent on G; conditional green/red for P/L and ROI; auto-resize columns A..J.
+  - Drive placement: moves file under a cadence-specific parent with optional `YYYY` subfolder, controlled by env.
+- Google OAuth flow and endpoints for Sheets/Drive access.
+  - `GET /google/auth`, `GET /google/callback`, `POST /google/sheets/rumble/create`.
+  - Token stored at `storage/app/private/google_oauth_token.json`.
+
+### Changed
+- OAuth popup race condition fixed: listener is attached BEFORE navigating the popup to the auth URL; adds 120s timeout fallback and origin check.
+- Backend create endpoint returns `401` with `authorizeUrl` when token is missing/expired; frontend seamlessly resumes after consent.
+
+### Docs
+- README updated with Google OAuth + Sheets setup (.env keys, routes) and Create Sheet behavior/formatting.
+
 ## [0.5.13] - 2025-08-16
 ### Changed
 - Google Binom Report: COPY TABLE now shows the full date range in the top Date row for Weekly/Monthly, formatted as `DD/MM - DD/MM`.

@@ -120,6 +120,7 @@ Roadmap (APIs & automation):
 - TailwindCSS (or Bootstrap)
 - [maatwebsite/excel](https://laravel-excel.com/) for CSV/XLSX import/export
 - [spatie/laravel-permission](https://spatie.be/docs/laravel-permission) (optional)
+- Google APIs PHP Client (`google/apiclient`)
 
 ## Installation
 1. **Clone the repo:**
@@ -135,6 +136,27 @@ Roadmap (APIs & automation):
 3. **Configure environment:**
    - Copy `.env.example` to `.env` and set DB credentials
    - Set file upload size in `php.ini` if needed
+
+### Google OAuth + Sheets Setup
+- Create a Google Cloud OAuth 2.0 Client (Web application) and set the Authorized redirect URI to your app's callback, e.g.:
+  - `http://localhost:8000/google/callback` (dev) or your production domain
+- Required `.env` keys (see `config/services.php`):
+  - `GOOGLE_CLIENT_ID=...`
+  - `GOOGLE_CLIENT_SECRET=...`
+  - `GOOGLE_REDIRECT_URI=http://localhost:8000/google/callback`
+  - `GOOGLE_SCOPES="https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file"`
+  - Optional: `GOOGLE_APP_NAME="Report System"`
+- Optional Google Drive folder placement (used by Create Sheet):
+  - `GOOGLE_DRIVE_DEFAULT_PARENT_ID=` (fallback parent folder)
+  - `GOOGLE_DRIVE_DAILY_PARENT_ID=` (if set, daily sheets land here)
+  - `GOOGLE_DRIVE_WEEKLY_PARENT_ID=` (if set, weekly sheets land here)
+  - `GOOGLE_DRIVE_MONTHLY_PARENT_ID=` (if set, monthly sheets land here)
+  - `GOOGLE_SHEET_SUBFOLDER_PATTERN=YYYY` (auto create/use a year subfolder under the cadence parent)
+- Token storage: `storage/app/private/google_oauth_token.json`. Delete this file to force re-consent.
+- Routes:
+  - `GET /google/auth` → starts OAuth
+  - `GET /google/callback` → saves token and notifies opener
+  - `POST /google/sheets/rumble/create` (auth required) → creates the Google Sheet
 4. **Run migrations:**
    ```bash
    php artisan migrate
@@ -198,6 +220,22 @@ Roadmap (APIs & automation):
 - Money formatting: Spend, Revenue, P/L, Daily Cap, CPM, and Set CPM display with a `$` sign.
  - If Binom has revenue for a campaign and there is no matching Rumble spend, the row is still included (revenue-only) so totals remain accurate.
  - Copy table: Click the red COPY TABLE button beside the revenue text in each section header to copy the full table to the clipboard (TSV). Paste directly into Google Sheets/Excel. Copied table preserves formulas for `P/L` and `ROI` columns on data rows, Account Summary rows, and the bottom SUMMARY row. Formula details: `P/L = E{row}-D{row}`, `ROI = TEXT((E{row}/D{row})-1, "0.00%")`. Formulas are only injected when the destination cell is not empty.
+
+### Create Google Sheet (Rumble - Binom Report)
+- Each section has a blue "CREATE SHEET" button that builds a Google Sheet with the same data and formulas.
+- Behavior and formatting:
+  - Sheet name = `<date range> - Rumble Ads` (e.g., `28/07 - 03/08 - Rumble Ads`)
+  - First tab renamed to `Report`
+  - Row 1 = Date row (bold). Row 2 = header with gray `#dadada` background. Data starts at row 3.
+  - Formulas: P/L (`=E-D`) and ROI (`=IF(D>0,(E/D)-1, "")`) on data rows; dynamic `SUM` for Account Summary and SUMMARY rows
+  - Number formats: currency on C/D/E/I/J; percent on G (ROI)
+  - Conditional format: green `#a3da9d` when > 0 and red `#ff8080` when < 0 on P/L (F) and ROI (G)
+  - Auto-resize columns A..J
+  - File is moved to a Drive folder based on cadence parents and optional year subfolder (see env keys above)
+- OAuth flow:
+  - If not authorized, a popup/tab opens to Google. After consenting, the popup notifies the app and closes; creation resumes automatically.
+  - Robust listener ordering avoids race conditions; a 120s timeout fallback prevents indefinite waiting if the popup is closed early.
+  - Ensure your browser allows popups for the app domain.
 
 ## Import Formats
 - Google Data (CSV): `Account name`, `Campaign`, `Cost`
