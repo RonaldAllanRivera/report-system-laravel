@@ -255,6 +255,14 @@ class GoogleSheetsController extends Controller
                         'fields' => 'userEnteredFormat.textFormat.bold'
                     ]
                 ]);
+                // Left-align entire first row (date row)
+                $requests[] = new \Google\Service\Sheets\Request([
+                    'repeatCell' => [
+                        'range' => [ 'sheetId' => $firstSheetId, 'startRowIndex' => 0, 'endRowIndex' => 1, 'startColumnIndex' => 0, 'endColumnIndex' => 10 ],
+                        'cell' => [ 'userEnteredFormat' => [ 'horizontalAlignment' => 'LEFT' ] ],
+                        'fields' => 'userEnteredFormat.horizontalAlignment'
+                    ]
+                ]);
 
                 // Header row 2: gray background + bold text (A..J only)
                 $requests[] = new \Google\Service\Sheets\Request([
