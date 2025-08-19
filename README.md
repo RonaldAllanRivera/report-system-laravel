@@ -1,7 +1,7 @@
 # Multi-Source Marketing Data Dashboard (CSV/JSON)
 
 ## Overview
-Modern, API-free performance marketing reporting. This Laravel 12 app ingests CSV/JSON exports (no 3rd‑party API keys), normalizes multiple ad network datasets, and renders fast, reliable admin dashboards with spreadsheet‑friendly tables. Built as a portfolio‑ready system with clean UX, strong data correctness guarantees, and an automation roadmap.
+Modern reporting with API-free data ingestion and optional Google APIs for export. This Laravel 12 app ingests CSV/JSON exports (no 3rd‑party API keys) for all datasets, then optionally uses Google OAuth + Sheets/Drive APIs for one‑click “CREATE SHEET” exports. It normalizes multiple ad network datasets and renders fast, reliable admin dashboards with spreadsheet‑friendly tables. Built as a production‑grade automation project with clean UX, strong data correctness guarantees, and a clear automation roadmap.
 
 Why it stands out:
 - Business impact: turns raw exports into actionable daily/weekly/monthly insights in minutes.
@@ -10,6 +10,7 @@ Why it stands out:
  - Data accuracy: strict one‑to‑one campaign matching (ID‑first, sanitized‑name fallback) and Binom‑only revenue rows ensure no double counting and no missing revenue.
  - Performance & scale: fast grouped views, lazy loads, and recent‑period limits on heavy pages while keeping totals consistent.
  - Spreadsheet fidelity: COPY TABLE outputs TSV + rich HTML with formulas (P/L, ROI, summaries) so pasted sheets compute immediately.
+ - Optional Google integration: one‑click “CREATE SHEET” uses Google OAuth + Sheets/Drive APIs; data ingestion remains API‑free.
 
 Roadmap (APIs & automation):
 - Connect Gmail (OAuth/Gmail API) to auto‑ingest email report attachments.
