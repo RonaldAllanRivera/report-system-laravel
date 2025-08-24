@@ -286,6 +286,158 @@ class GoogleSheetsController extends Controller
                 }
             }
 
+            // Build and add a second sheet named 'Summary' based on the COPY SUMMARY clipboard logic
+            try {
+                // Derive header for ROI Last from the Report header (row 2, column G index=6) if present
+                $roiPrevHeader = 'ROI LAST WEEK';
+                if (isset($values[1]) && is_array($values[1]) && array_key_exists(6, $values[1]) && trim((string)$values[1][6]) !== '') {
+                    $roiPrevHeader = (string)$values[1][6];
+                }
+
+                // Prepare Summary values
+                $summaryValues = [];
+                $summaryValues[] = ['ACCOUNT NAME', 'TOTAL SPEND', 'REVENUE', 'P/L', 'ROI', $roiPrevHeader];
+
+                if (is_array($values)) {
+                    foreach ($values as $i => $row) {
+                        if ($i < 2 || !is_array($row)) continue; // skip date + header
+                        $label = strtoupper(trim((string)($row[1] ?? '')));
+                        if ($label === 'ACCOUNT SUMMARY' || $label === 'SUMMARY') {
+                            // Compute the row number in the 'Report' sheet. values index i corresponds to sheet row (i+1)
+                            $reportRow = $i + 1;
+                            $name = ($label === 'SUMMARY') ? 'SUMMARY' : (string)($row[0] ?? '');
+                            $summaryValues[] = [
+                                $name,
+                                "=Report!C{$reportRow}", // TOTAL SPEND
+                                "=Report!D{$reportRow}", // REVENUE
+                                "=Report!E{$reportRow}", // P/L
+                                "=Report!F{$reportRow}", // ROI
+                                "=Report!G{$reportRow}", // ROI LAST (Full/Cohort per header)
+                            ];
+                        }
+                    }
+                }
+
+                // Add the Summary sheet
+                $addResp = $sheets->spreadsheets->batchUpdate($spreadsheetId, new \Google\Service\Sheets\BatchUpdateSpreadsheetRequest([
+                    'requests' => [
+                        new \Google\Service\Sheets\Request([
+                            'addSheet' => [ 'properties' => [ 'title' => 'Summary' ] ]
+                        ])
+                    ]
+                ]));
+
+                // Extract the new sheetId
+                $summarySheetId = null;
+                if ($addResp && method_exists($addResp, 'getReplies')) {
+                    $replies = $addResp->getReplies();
+                    if (is_array($replies) && isset($replies[0]) && $replies[0]->getAddSheet() && $replies[0]->getAddSheet()->getProperties()) {
+                        $summarySheetId = $replies[0]->getAddSheet()->getProperties()->getSheetId();
+                    }
+                }
+
+                // Write values to Summary!A1 with USER_ENTERED (so % and formulas are interpreted)
+                if (!empty($summaryValues)) {
+                    $sumBody = new \Google\Service\Sheets\ValueRange([
+                        'majorDimension' => 'ROWS',
+                        'values' => $summaryValues,
+                    ]);
+                    $sheets->spreadsheets_values->update($spreadsheetId, 'Summary!A1', $sumBody, [
+                        'valueInputOption' => 'USER_ENTERED',
+                    ]);
+                }
+
+                // Apply formatting to Summary sheet
+                if ($summarySheetId !== null) {
+                    $sumRowCount = is_array($summaryValues) ? count($summaryValues) : 0; // includes header
+                    $sumStartData = 1; // zero-based -> row 2
+                    $sumEndData = max($sumStartData, $sumRowCount); // non-inclusive
+
+                    $sumReq = [];
+
+                    // Header row styling A..F
+                    $sumReq[] = new \Google\Service\Sheets\Request([
+                        'repeatCell' => [
+                            'range' => [ 'sheetId' => $summarySheetId, 'startRowIndex' => 0, 'endRowIndex' => 1, 'startColumnIndex' => 0, 'endColumnIndex' => 6 ],
+                            'cell' => [ 'userEnteredFormat' => [ 'backgroundColor' => [ 'red' => 0.8549, 'green' => 0.8549, 'blue' => 0.8549 ], 'textFormat' => [ 'bold' => true ] ] ],
+                            'fields' => 'userEnteredFormat(backgroundColor, textFormat.bold)'
+                        ]
+                    ]);
+
+                    // Number formats: B,C,D currency
+                    foreach ([1,2,3] as $col) {
+                        $sumReq[] = new \Google\Service\Sheets\Request([
+                            'repeatCell' => [
+                                'range' => [ 'sheetId' => $summarySheetId, 'startRowIndex' => $sumStartData, 'endRowIndex' => $sumEndData, 'startColumnIndex' => $col, 'endColumnIndex' => $col + 1 ],
+                                'cell' => [ 'userEnteredFormat' => [ 'numberFormat' => [ 'type' => 'NUMBER', 'pattern' => '"$"#,##0.00' ] ] ],
+                                'fields' => 'userEnteredFormat.numberFormat'
+                            ]
+                        ]);
+                    }
+
+                    // Percent formats: E,F
+                    foreach ([4,5] as $col) {
+                        $sumReq[] = new \Google\Service\Sheets\Request([
+                            'repeatCell' => [
+                                'range' => [ 'sheetId' => $summarySheetId, 'startRowIndex' => $sumStartData, 'endRowIndex' => $sumEndData, 'startColumnIndex' => $col, 'endColumnIndex' => $col + 1 ],
+                                'cell' => [ 'userEnteredFormat' => [ 'numberFormat' => [ 'type' => 'PERCENT', 'pattern' => '0.00%' ] ] ],
+                                'fields' => 'userEnteredFormat.numberFormat'
+                            ]
+                        ]);
+                    }
+
+                    // Bold + Italic label when column A equals 'SUMMARY'
+                    $sumReq[] = new \Google\Service\Sheets\Request([
+                        'addConditionalFormatRule' => [
+                            'rule' => [
+                                'ranges' => [[ 'sheetId' => $summarySheetId, 'startRowIndex' => $sumStartData, 'endRowIndex' => $sumEndData, 'startColumnIndex' => 0, 'endColumnIndex' => 1 ]],
+                                'booleanRule' => [ 'condition' => [ 'type' => 'TEXT_EQ', 'values' => [[ 'userEnteredValue' => 'SUMMARY' ]] ], 'format' => [ 'textFormat' => [ 'bold' => true, 'italic' => true ] ] ],
+                            ],
+                            'index' => 0
+                        ]
+                    ]);
+
+                    // Conditional formatting for D/E/F
+                    $green = [ 'red' => 0.639, 'green' => 0.855, 'blue' => 0.616 ];
+                    $red   = [ 'red' => 1.0,   'green' => 0.502, 'blue' => 0.502 ];
+                    foreach ([3,4,5] as $colIdx) {
+                        $sumReq[] = new \Google\Service\Sheets\Request([
+                            'addConditionalFormatRule' => [
+                                'rule' => [
+                                    'ranges' => [[ 'sheetId' => $summarySheetId, 'startRowIndex' => $sumStartData, 'endRowIndex' => $sumEndData, 'startColumnIndex' => $colIdx, 'endColumnIndex' => $colIdx + 1 ]],
+                                    'booleanRule' => [ 'condition' => [ 'type' => 'NUMBER_GREATER', 'values' => [[ 'userEnteredValue' => '0' ]] ], 'format' => [ 'backgroundColor' => $green ] ],
+                                ],
+                                'index' => 0
+                            ]
+                        ]);
+                        $sumReq[] = new \Google\Service\Sheets\Request([
+                            'addConditionalFormatRule' => [
+                                'rule' => [
+                                    'ranges' => [[ 'sheetId' => $summarySheetId, 'startRowIndex' => $sumStartData, 'endRowIndex' => $sumEndData, 'startColumnIndex' => $colIdx, 'endColumnIndex' => $colIdx + 1 ]],
+                                    'booleanRule' => [ 'condition' => [ 'type' => 'NUMBER_LESS', 'values' => [[ 'userEnteredValue' => '0' ]] ], 'format' => [ 'backgroundColor' => $red ] ],
+                                ],
+                                'index' => 0
+                            ]
+                        ]);
+                    }
+
+                    // Auto-resize columns A..F
+                    $sumReq[] = new \Google\Service\Sheets\Request([
+                        'autoResizeDimensions' => [ 'dimensions' => [ 'sheetId' => $summarySheetId, 'dimension' => 'COLUMNS', 'startIndex' => 0, 'endIndex' => 6 ] ]
+                    ]);
+
+                    try {
+                        $sheets->spreadsheets->batchUpdate($spreadsheetId, new \Google\Service\Sheets\BatchUpdateSpreadsheetRequest([
+                            'requests' => $sumReq,
+                        ]));
+                    } catch (\Throwable $e) {
+                        Log::warning('Summary sheet formatting skipped: ' . $e->getMessage());
+                    }
+                }
+            } catch (\Throwable $e) {
+                Log::warning('Adding Summary sheet failed: ' . $e->getMessage());
+            }
+
             return response()->json([
                 'spreadsheetId' => $spreadsheetId,
                 'spreadsheetUrl' => $spreadsheetUrl,

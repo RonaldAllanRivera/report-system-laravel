@@ -243,6 +243,11 @@ Roadmap (APIs & automation):
  - Each section has a blue "CREATE SHEET" button that builds a Google Sheet mirroring the on-screen Google Binom table.
  - Sheet name = `<date range> - Google Ads` (e.g., `28/07 - 03/08 - Google Ads`)
  - First tab renamed to `Report`
+ - Adds a second tab named `Summary`:
+   - Columns: `Account Name`, `Total Spend`, `Revenue`, `P/L`, `ROI`, `ROI Last Week/Month` (header mirrors `Report` column text, including `(Full)`/`(Cohort)`).
+   - Values are formulas referencing the corresponding `Report` rows: per‑account Account Summary rows and the bottom `SUMMARY` row.
+   - Formatting: gray `#dadada` header; currency on B/C/D; percent on E/F; conditional green `#a3da9d` and red `#ff8080` backgrounds for P/L (D), ROI (E), and ROI Last (F).
+   - Auto-resize columns A..F; the label cell "SUMMARY" in column A is bold + italic.
  - Row 1 = Date row (bold). Row 2 = header with gray `#dadada` background. Data starts at row 3.
  - Formulas: P/L (`=D-C`) in column E and ROI (`=IF(C>0,(D/C)-1, "")`) in column F on data rows; dynamic `SUM` for Account Summary and SUMMARY rows (Spend/Revenue).
  - Number formats: currency on C/D/E; percent on F/G; integer on H.

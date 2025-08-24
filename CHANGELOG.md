@@ -1,3 +1,14 @@
+## [0.6.2] - 2025-08-24
+### Added
+- Google Binom Sheets export: added a second tab `Summary` alongside `Report`.
+  - Columns: Account Name, Total Spend, Revenue, P/L, ROI, ROI Last Week/Month (header mirrors Report text, including `(Full)`/`(Cohort)`).
+  - Values are formulas referencing the corresponding `Report` rows (per-account Account Summary and bottom SUMMARY).
+  - Formats: gray `#dadada` header; currency on B/C/D; percent on E/F; conditional green/red on P/L (D), ROI (E), ROI Last (F); auto-resize columns A..F.
+  - Styling: the label cell "SUMMARY" in column A is bold + italic.
+
+### Docs
+- README: documented the new `Summary` sheet behavior and formatting for Google Binom Create Sheet.
+
 ## [0.6.1] - 2025-08-24
 ### Added
 - Google Sheets export on Google Binom Report: blue "CREATE SHEET" button builds a formatted Google Sheet mirroring the on-screen 8-column table.
