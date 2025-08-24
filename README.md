@@ -158,6 +158,7 @@ Roadmap (APIs & automation):
   - `GET /google/auth` → starts OAuth
   - `GET /google/callback` → saves token and notifies opener
   - `POST /google/sheets/rumble/create` (auth required) → creates the Google Sheet
+  - `POST /google/sheets/google-binom/create` (auth required) → creates the Google Binom sheet
 4. **Run migrations:**
    ```bash
    php artisan migrate
@@ -238,7 +239,19 @@ Roadmap (APIs & automation):
   - Robust listener ordering avoids race conditions; a 120s timeout fallback prevents indefinite waiting if the popup is closed early.
   - Ensure your browser allows popups for the app domain.
 
-## Import Formats
+### Create Google Sheet (Google Binom Report)
+ - Each section has a blue "CREATE SHEET" button that builds a Google Sheet mirroring the on-screen Google Binom table.
+ - Sheet name = `<date range> - Google Ads` (e.g., `28/07 - 03/08 - Google Ads`)
+ - First tab renamed to `Report`
+ - Row 1 = Date row (bold). Row 2 = header with gray `#dadada` background. Data starts at row 3.
+ - Formulas: P/L (`=D-C`) in column E and ROI (`=IF(C>0,(D/C)-1, "")`) in column F on data rows; dynamic `SUM` for Account Summary and SUMMARY rows (Spend/Revenue).
+ - Number formats: currency on C/D/E; percent on F/G; integer on H.
+ - Conditional format: green `#a3da9d` when > 0 and red `#ff8080` when < 0 on P/L (E), ROI (F), and ROI Last (G).
+ - Auto-resize columns A..H.
+ - File is moved to a Drive folder based on cadence parents and optional year subfolder (see env keys).
+ - OAuth flow matches Rumble: if not authorized, popup prompts consent, then creation resumes automatically; includes a 120s timeout safety.
+
+ ## Import Formats
 - Google Data (CSV): `Account name`, `Campaign`, `Cost`
 - Rumble Data (CSV): `Campaign`, `Spend`, `CPM`
 - Binom Rumble Spent Data (CSV): `Name`, `Leads`, `Revenue` (semicolon `;` delimited, quoted)

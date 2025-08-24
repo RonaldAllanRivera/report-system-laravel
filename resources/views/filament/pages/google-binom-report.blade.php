@@ -22,7 +22,7 @@
         </div>
         @forelse($sections as $section)
             @php($report = $section['report'])
-            <div x-data="{ open: false, copying: false, copyingSummary: false }" class="rounded-lg border bg-white" wire:key="section-{{ $section['report_type'] }}-{{ $section['date_from'] }}-{{ $section['date_to'] }}">
+            <div x-data="{ open: false, copying: false, copyingSummary: false, creating: false }" class="rounded-lg border bg-white" wire:key="section-{{ $section['report_type'] }}-{{ $section['date_from'] }}-{{ $section['date_to'] }}">
                 <div @click="open = !open" class="flex items-center justify-between px-4 py-3 cursor-pointer">
                     <div class="font-medium text-gray-700">
                         {{ \Illuminate\Support\Carbon::parse($section['date_from'])->format('F j, Y') }} — {{ \Illuminate\Support\Carbon::parse($section['date_to'])->format('F j, Y') }}
@@ -42,6 +42,17 @@
                             class="ml-2 text-indigo-600 hover:text-indigo-700 font-semibold text-xs uppercase tracking-wide {{ $report['has_rows'] ? '' : 'opacity-40 pointer-events-none' }}">
                             <span x-show="!copyingSummary">COPY SUMMARY</span>
                             <span x-show="copyingSummary" class="text-green-600">COPIED</span>
+                        </button>
+                        <button type="button"
+                            @click.stop="creating=true; GB_createSheet($refs.tbl,
+                              '{{ \Illuminate\Support\Carbon::parse($section['date_from'])->format('d/m') }} - {{ \Illuminate\Support\Carbon::parse($section['date_to'])->format('d/m') }}',
+                              '{{ $section['report_type'] ?? 'weekly' }}',
+                              '{{ $section['date_to'] }}'
+                            ).finally(()=>creating=false)"
+                            title="Create a Google Sheet with this table"
+                            class="ml-2 text-blue-600 hover:text-blue-700 font-semibold text-xs uppercase tracking-wide {{ $report['has_rows'] ? '' : 'opacity-40 pointer-events-none' }}">
+                            <span x-show="!creating">CREATE SHEET</span>
+                            <span x-show="creating" class="text-green-600">CREATING…</span>
                         </button>
                         <span class="ml-3 text-[11px] text-gray-500 uppercase tracking-wide" title="Full mode includes all previous-period campaigns for the account/overall.">ROI Last</span>
                         <div class="inline-flex divide-x divide-gray-200 dark:divide-gray-700 rounded-md shadow-sm overflow-hidden ring-1 ring-gray-200 dark:ring-gray-700 bg-white dark:bg-gray-900" role="group" title="Cohort mode only includes the campaigns present in the current table (current-period cohort).">
@@ -454,5 +465,179 @@
         catch(_) { fallbackCopyText(tsv); }
       }
     })();
+  };
+
+  // Create Google Sheet for Google Binom report (8 columns)
+  window.GB_createSheet = window.GB_createSheet || async function(table, dateStr, cadence, dateTo) {
+    if (!table) return;
+
+    // Open a tab immediately to avoid popup blockers; navigate later
+    let pendingWin = null;
+    try { pendingWin = window.open('', '_blank'); } catch (_) {}
+
+    const headRow = table.querySelector('thead tr');
+    const colCount = headRow ? Array.from(headRow.cells).reduce((a,c)=>a+(c.colSpan||1),0) : 8;
+    const rows = Array.from(table.querySelectorAll('thead tr, tbody tr, tfoot tr'));
+    const moneyToNum = s => (s||'').replace(/[^0-9.\-]/g,'');
+
+    const values = [];
+    // Date row at the top (row 1)
+    const dateRow = new Array(colCount).fill('');
+    dateRow[0] = dateStr || '';
+    values.push(dateRow);
+
+    // Track per-account ranges and account summary rows
+    let groupStartRow = null;
+    let groupEndRow = null;
+    const accountSummaryRows = [];
+
+    const isHeadTag = (tr) => tr.parentElement && tr.parentElement.tagName.toLowerCase()==='thead';
+
+    rows.forEach((tr, idx) => {
+      const rowNumber = idx + 2; // date row is 1
+      const isHead = isHeadTag(tr);
+      const cells = Array.from(tr.cells);
+      const parentTag = tr.parentElement ? tr.parentElement.tagName.toLowerCase() : '';
+      const secondText = (cells[1] ? (cells[1].innerText||'') : '').replace(/\s+/g,' ').trim();
+      const isAccountSummary = !isHead && parentTag==='tbody' && secondText.toLowerCase()==='account summary';
+      const isSpacer = !isHead && parentTag==='tbody' && cells.length===1 && ((cells[0].colSpan||1)>= (headRow ? headRow.cells.length : 8));
+      const isFoot = parentTag==='tfoot';
+      const isSummaryRow = isFoot && secondText.toLowerCase()==='summary';
+      const isDataRow = !isHead && !isAccountSummary && !isSpacer && !isFoot;
+
+      if (isDataRow) {
+        if (groupStartRow === null) groupStartRow = rowNumber;
+        groupEndRow = rowNumber;
+      }
+      if (isAccountSummary) accountSummaryRows.push(rowNumber);
+
+      const out = new Array(colCount).fill('');
+      cells.forEach((td, ci0) => {
+        const span = td.colSpan || 1;
+        const raw = (td.innerText||'').replace(/\s+/g,' ').trim();
+        let ci = ci0;
+        if (span > 1) ci = ci0; // only write into first spanned column
+        if (ci < colCount) {
+          let val = raw;
+          if (!isHead) {
+            const col = ci + 1; // 1-indexed
+            // Normalize numeric $ columns: C(3), D(4), E(5)
+            if (col===3 || col===4 || col===5) {
+              val = moneyToNum(val) || '';
+            }
+            // P/L formula (E) = D - C
+            if (col===5) {
+              val = raw ? `=D${rowNumber}-C${rowNumber}` : '';
+            }
+            // ROI formula (F) numeric
+            if (col===6) {
+              val = raw ? `=IF(C${rowNumber}>0, (D${rowNumber}/C${rowNumber})-1, "")` : '';
+            }
+            // Account Summary: Spend/Revenue sums over group
+            if (isAccountSummary && groupStartRow !== null && groupEndRow !== null) {
+              if (col===3) val = `=SUM(C${groupStartRow}:C${groupEndRow})`;
+              if (col===4) val = `=SUM(D${groupStartRow}:D${groupEndRow})`;
+            }
+            // Bottom SUMMARY row: sum Account Summary rows for C/D
+            if (isSummaryRow && accountSummaryRows.length) {
+              if (col===3) val = `=${accountSummaryRows.map(r => `C${r}`).join('+')}`;
+              if (col===4) val = `=${accountSummaryRows.map(r => `D${r}`).join('+')}`;
+            }
+          }
+          out[ci] = val;
+        }
+      });
+
+      values.push(out);
+
+      if (isAccountSummary) {
+        groupStartRow = null;
+        groupEndRow = null;
+      }
+    });
+
+    try {
+      const payload = {
+        title: `${dateStr || ''} - Google Ads`,
+        values,
+        cadence,
+        date_to: dateTo,
+      };
+
+      const resp = await fetch('{{ route('google.sheets.google_binom.create') }}', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-TOKEN': '{{ csrf_token() }}'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (resp.status === 401) {
+        const data = await resp.json().catch(() => ({}));
+        if (data && data.authorizeUrl) {
+          const onMsg = async (ev) => {
+            try {
+              if (!ev) return;
+              if (ev.origin !== window.location.origin) return;
+              if (!ev.data || ev.data.type !== 'google-auth-success') return;
+              window.removeEventListener('message', onMsg);
+              const retry = await fetch('{{ route('google.sheets.google_binom.create') }}', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify(payload)
+              });
+              if (!retry.ok) {
+                const errData = await retry.json().catch(() => null);
+                const msg = errData && (errData.message || errData.error) ? (errData.message || errData.error) : `HTTP ${retry.status}`;
+                alert('Failed to create Google Sheet after authorization: ' + msg);
+                try { if (pendingWin && !pendingWin.closed) pendingWin.close(); } catch (_) {}
+                return;
+              }
+              const done = await retry.json();
+              if (done && done.spreadsheetUrl) {
+                if (pendingWin && !pendingWin.closed) pendingWin.location.href = done.spreadsheetUrl; else {
+                  try { pendingWin = window.open(done.spreadsheetUrl, '_blank'); } catch (_) {}
+                }
+              }
+            } catch (e) {
+              console.error(e);
+              alert('Failed to create Google Sheet after authorization.');
+              try { if (pendingWin && !pendingWin.closed) pendingWin.close(); } catch (_) {}
+            }
+          };
+          window.addEventListener('message', onMsg);
+
+          const authUrl = data.authorizeUrl;
+          if (pendingWin && !pendingWin.closed) pendingWin.location.href = authUrl; else {
+            try { pendingWin = window.open(authUrl, '_blank'); } catch (_) {}
+          }
+          setTimeout(() => {
+            try { window.removeEventListener('message', onMsg); } catch (_) {}
+            try { if (pendingWin && !pendingWin.closed) pendingWin.close(); } catch (_) {}
+            alert('Authorization timed out. Please try again.');
+          }, 120000);
+          return;
+        }
+      }
+      if (!resp.ok) {
+        const errData = await resp.json().catch(() => null);
+        const msg = errData && (errData.message || errData.error) ? (errData.message || errData.error) : `HTTP ${resp.status}`;
+        alert('Failed to create Google Sheet: ' + msg);
+        try { if (pendingWin && !pendingWin.closed) pendingWin.close(); } catch (_) {}
+        return;
+      }
+      const data = await resp.json();
+      if (data && data.spreadsheetUrl) {
+        if (pendingWin && !pendingWin.closed) pendingWin.location.href = data.spreadsheetUrl; else window.open(data.spreadsheetUrl, '_blank');
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Failed to create Google Sheet.');
+      try { if (pendingWin && !pendingWin.closed) pendingWin.close(); } catch (_) {}
+    }
   };
 </script>

@@ -1,3 +1,18 @@
+## [0.6.1] - 2025-08-24
+### Added
+- Google Sheets export on Google Binom Report: blue "CREATE SHEET" button builds a formatted Google Sheet mirroring the on-screen 8-column table.
+  - Spreadsheet: renames first tab to `Report`, inserts a bold Date row (row 1), gray `#dadada` header (row 2), data from row 3.
+  - Formulas: P/L (`=D-C`) in column E and ROI (`=IF(C>0,(D/C)-1, "")`) in column F on data rows; dynamic `SUM` for Account Summary and SUMMARY (Spend/Revenue).
+  - Formats: currency on C/D/E; percent on F/G; integer on H; conditional green/red for P/L (E), ROI (F), and ROI Last (G); auto-resize columns A..H.
+  - Drive placement: moves file under cadence-specific parent with optional `YYYY` subfolder, controlled by env.
+  - Endpoint: `POST /google/sheets/google-binom/create` (auth required).
+
+### Changed
+- OAuth popup flow reused for Google Binom export with 120s timeout guard; frontend opens a pending tab immediately to avoid popup blockers and navigates it to the created sheet URL.
+
+### Docs
+- README: documented Google Binom Create Sheet behavior, formatting, OAuth flow, Drive placement, and the new route.
+
 ## [0.6.0] - 2025-08-18
 ### Added
 - Google Sheets export on Rumble Binom Report: blue "CREATE SHEET" button builds a formatted Google Sheet mirroring the on-screen table.
