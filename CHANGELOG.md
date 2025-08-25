@@ -1,3 +1,18 @@
+## [0.6.3] - 2025-08-25
+### Added
+- Filament "Invoice" tool under Tools:
+  - Form with Name, Bill To, Date (today, disabled), Invoice # (auto `YYYY-NNN`), Notes.
+  - Repeater for line items (quantity × rate → amount) with auto-calculated total.
+  - Header action "Download PDF" saves the invoice and downloads the PDF.
+
+### Fixed
+- Invoice PDF now renders with embedded Arial across environments.
+  - DomPDF `defaultFont` set to `arialembedded`; Blade uses `@font-face` with absolute file URLs and bold mapped to `arialbd.ttf`.
+- Downloaded PDF filename now exactly matches `Allan - {invoice_number}.pdf`.
+
+### Docs
+- README: Added Windows setup commands to copy `arial.ttf` and `arialbd.ttf` into `public/fonts/`, plus cache/filename notes.
+
 ## [0.6.2] - 2025-08-24
 ### Added
 - Google Binom Sheets export: added a second tab `Summary` alongside `Report`.

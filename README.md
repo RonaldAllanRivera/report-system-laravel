@@ -113,6 +113,13 @@ Roadmap (APIs & automation):
   - Clean HTML tables for grouped views (dark mode supported)
   - Color-coded badges for report types
 
+ - **Invoice Tool (Filament Page)**
+   - Navigate: Tools → Invoice
+   - Form: Name, Bill To, Date (today, disabled), Invoice # (auto `YYYY-NNN`), Notes
+   - Line Items: item, quantity, rate; amount and total auto-calculated
+   - Action: Download PDF (saves invoice + items, then downloads)
+   - PDF: embedded Arial; filename `Allan - {invoice_number}.pdf`
+
 ## Technologies
 - Laravel 12 (PHP 8.3+)
 - Filament Admin (free version)
@@ -183,6 +190,20 @@ Roadmap (APIs & automation):
    php artisan migrate
    ```
 
+### PDF Invoices (DomPDF) — Windows font setup
+ The app embeds Arial for invoice PDFs. On Windows, copy the system fonts into `public/fonts/`:
+ 
+ ```powershell
+ New-Item -ItemType Directory -Force -Path .\public\fonts
+ Copy-Item "C:\Windows\Fonts\arial.ttf"   ".\public\fonts\arial.ttf"
+ Copy-Item "C:\Windows\Fonts\arialbd.ttf" ".\public\fonts\arialbd.ttf"
+ ```
+
+ Notes:
+ - Filename: downloads as `Allan - {invoice_number}.pdf` (fixed; no timestamps).
+ - Font cache: DomPDF stores font metrics in `storage/fonts/`. If font changes don't appear, delete files in that folder; metrics regenerate on next render.
+ - Version control: `.gitignore` excludes `storage/fonts/` and `public/fonts/*.ttf` so caches and local font binaries are not committed.
+
 ## Usage
 - Log in to Filament Admin
 - Google Data: upload CSV (Account name, Campaign, Cost); Weekly/Monthly only; presets end at yesterday; optional one‑line date range auto‑detect (e.g., "28 July 2025 - 3 August 2025")
@@ -210,6 +231,9 @@ Roadmap (APIs & automation):
   1. Google Data
   2. Binom Google Spent Data
   3. Google Binom Report
+
+ - Additional group: `Tools`
+   1. Invoice
 
 ### Combined Report (Rumble - Binom Report)
 - Navigate: `Rumble and Binom Reports Only` → `4. Rumble Binom Report`
