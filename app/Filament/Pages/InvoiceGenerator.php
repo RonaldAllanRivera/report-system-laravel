@@ -35,27 +35,45 @@ class InvoiceGenerator extends Page implements HasForms
 
     public function mount(): void
     {
-        $date = $this->defaultInvoiceDate();
+        $date = today();
+
+        // Prefill from the most recent invoice
+        $last = Invoice::with('items')->latest('id')->first();
+
+        $items = [];
+        if ($last && $last->items->count()) {
+            foreach ($last->items as $it) {
+                $items[] = [
+                    'item' => (string) $it->item,
+                    'quantity' => (int) $it->quantity,
+                    'rate' => (float) $it->rate,
+                    'amount' => (float) $it->amount,
+                ];
+            }
+        } else {
+            $items[] = ['item' => '', 'quantity' => 1, 'rate' => 0, 'amount' => 0];
+        }
+
+        $total = 0;
+        foreach ($items as $row) {
+            $total += (float) ($row['amount'] ?? 0);
+        }
+
         $this->form->fill([
-            'name' => auth()->user()->name ?? 'Allan',
-            'bill_to' => '',
+            'name' => $last->name ?? (auth()->user()->name ?? 'Allan'),
+            'bill_to' => $last->bill_to ?? '',
             'invoice_date' => $date->toDateString(),
-            'invoice_number' => $this->generateInvoiceNumber($date),
-            'notes' => '',
-            'items' => [
-                ['item' => '', 'quantity' => 1, 'rate' => 0, 'amount' => 0],
-            ],
-            'total' => 0,
+            'invoice_number' => $this->nextInvoiceNumberForYear($date->year),
+            'notes' => $last->notes ?? '',
+            'items' => $items,
+            'total' => round($total, 2),
         ]);
     }
 
     protected function defaultInvoiceDate(): Carbon
     {
-        $today = now();
-        if ($today->isFriday()) {
-            return $today->copy();
-        }
-        return $today->next('Friday');
+        // Date should always be today
+        return today();
     }
 
     protected function generateInvoiceNumber(Carbon $date): string
@@ -65,6 +83,23 @@ class InvoiceGenerator extends Page implements HasForms
         return sprintf('%04d-%03d', $year, $week);
     }
 
+    protected function nextInvoiceNumberForYear(int $year): string
+    {
+        // Find the highest sequence for the given year (invoice_number formatted as YYYY-NNN)
+        $latest = Invoice::where('invoice_number', 'like', sprintf('%04d-%%', $year))
+            ->orderBy('invoice_number', 'desc')
+            ->first();
+
+        if ($latest && preg_match('/^(\d{4})-(\d{3,})$/', $latest->invoice_number, $m)) {
+            $seq = (int) $m[2] + 1;
+        } else {
+            // If none exists yet this year, start at current ISO week
+            $seq = Carbon::today()->isoWeek();
+        }
+
+        return sprintf('%04d-%03d', $year, $seq);
+    }
+
     public function form(Form $form): Form
     {
         return $form
@@ -72,19 +107,14 @@ class InvoiceGenerator extends Page implements HasForms
                 Section::make('Invoice Details')
                     ->columns(3)
                     ->schema([
-                        Textarea::make('name')->label('Name')->rows(4)->columnSpan(1)->required(),
-                        Textarea::make('bill_to')->label('Bill To')->rows(4)->columnSpan(1)->required(),
+                        Textarea::make('name')->label('Name')->rows(6)->columnSpan(1)->required(),
+                        Textarea::make('bill_to')->label('Bill To')->rows(6)->columnSpan(1)->required(),
                         DatePicker::make('invoice_date')
                             ->native(false)
                             ->label('Date')
                             ->required()
-                            ->reactive()
-                            ->afterStateUpdated(function (Set $set, $state) {
-                                if (!$state) { return; }
-                                $date = Carbon::parse($state);
-                                $set('invoice_number', $this->generateInvoiceNumber($date));
-                            }),
-                        TextInput::make('invoice_number')->label('Invoice #')->required(),
+                            ->disabled(),
+                        TextInput::make('invoice_number')->label('Invoice #')->disabled(),
                         Textarea::make('notes')->label('Notes')->rows(3)->columnSpan(3),
                     ]),
 
@@ -169,8 +199,9 @@ class InvoiceGenerator extends Page implements HasForms
     {
         $data = $this->form->getState();
 
-        $date = isset($data['invoice_date']) ? Carbon::parse($data['invoice_date']) : $this->defaultInvoiceDate();
-        $invoiceNumber = $data['invoice_number'] ?: $this->generateInvoiceNumber($date);
+        // Always use today's date and compute the next unique invoice number for the year
+        $date = Carbon::today();
+        $invoiceNumber = $this->nextInvoiceNumberForYear($date->year);
 
         $items = (array) ($data['items'] ?? []);
         $total = 0;

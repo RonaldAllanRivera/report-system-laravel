@@ -15,7 +15,8 @@ class InvoiceController extends Controller
             'invoice' => $invoice,
         ])->setPaper('A4');
 
-        $fileName = trim(($invoice->name ?: 'Invoice')) . ' - ' . $invoice->invoice_number . '.pdf';
+        // Fixed filename format as requested: "Allan - {invoice_number}.pdf"
+        $fileName = 'Allan - ' . $invoice->invoice_number . '.pdf';
         return $pdf->download($fileName);
     }
 }
