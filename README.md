@@ -11,6 +11,7 @@ Why it stands out:
  - Performance & scale: fast grouped views, lazy loads, and recent‑period limits on heavy pages while keeping totals consistent.
  - Spreadsheet fidelity: COPY TABLE outputs TSV + rich HTML with formulas (P/L, ROI, summaries) so pasted sheets compute immediately.
  - Optional Google integration: one‑click “CREATE SHEET” uses Google OAuth + Sheets/Drive APIs; data ingestion remains API‑free.
+ - Invoices: one‑page Filament tool to generate and download PDF invoices instantly — auto invoice number (YYYY‑NNN), inline line‑item totals, embedded Arial font, and fixed filename `Allan - {invoice_number}.pdf`.
 
 Roadmap (APIs & automation):
 - Connect Gmail (OAuth/Gmail API) to auto‑ingest email report attachments.
@@ -80,7 +81,8 @@ Roadmap (APIs & automation):
     - Implemented via inline styles (not Tailwind bg classes) to satisfy IDE lints.
     - Clipboard HTML also bold+italicizes the "Account Summary" and "SUMMARY" labels in column B.
     - Header row uses `#dadada` background on-screen.
-\n+- **Google Binom Report**
+
+- **Google Binom Report**
   - Merges `Google Data` and `Binom Google Spent Data` for Weekly/Monthly reports.
   - Columns: Account, Campaign, Total Spend, Revenue, P/L, ROI, ROI LAST WEEK/MONTH, Sales.
   - Strict one-to-one matching:
