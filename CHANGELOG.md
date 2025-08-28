@@ -1,3 +1,14 @@
+## [0.6.5] - 2025-08-28
+### Changed
+- Rumble Binom Report: "CREATE DRAFT" email body now mirrors the approved layout from the frontend (no formulas; visible borders and padding; conditional green/red backgrounds for P/L and ROI; greeting and closing text included).
+- Intro text varies by cadence (Daily/Weekly/Monthly) and links the "yesterday/period" phrase to the created Google Sheet when available.
+
+### Added
+- Backend `createRumbleGmailDraft` honors a new `is_full_body` flag to treat the provided `html` as the complete email body, preventing duplicate preface/footer.
+
+### Docs
+- README: Documented Rumble Binom "Create Gmail Draft" behavior, link to Google Sheet, styling, and required `gmail.compose` scope.
+
 ## [0.6.4] - 2025-08-28
 ### Added
 - Invoice tool: "Create Gmail Draft" action uses Gmail API to create a draft with the generated invoice PDF attached (instead of sending locally).

@@ -24,6 +24,145 @@ class GoogleSheetsController extends Controller
         return $client;
     }
 
+    public function createRumbleGmailDraft(Request $request)
+    {
+        $request->validate([
+            'html' => 'required|string',
+            'cadence' => 'required|in:daily,weekly,monthly',
+            'date_to' => 'required|date',
+            'date_from' => 'nullable|date',
+            'date_str' => 'nullable|string',
+            'subject' => 'nullable|string',
+            'sheet_url' => 'nullable|url',
+            'is_full_body' => 'nullable|boolean',
+        ]);
+
+        $client = $this->getClient();
+        if (!$this->loadToken($client)) {
+            return response()->json([
+                'authorizeUrl' => $client->createAuthUrl(),
+                'message' => 'Authorization required',
+            ], 401);
+        }
+
+        try {
+            $gmail = new \Google\Service\Gmail($client);
+
+            $htmlInput = (string) $request->input('html');
+            $isFullBody = (bool) $request->boolean('is_full_body', false);
+            $cadence = (string) $request->input('cadence');
+            $dateToRaw = $request->input('date_to');
+            $dateFromRaw = $request->input('date_from');
+            $dateStr = trim((string) $request->input('date_str', ''));
+            $sheetUrl = trim((string) $request->input('sheet_url', ''));
+
+            // Robust date parsing
+            try { $dateTo = $dateToRaw instanceof \DateTimeInterface ? Carbon::instance($dateToRaw) : Carbon::parse((string)$dateToRaw); }
+            catch (\Throwable $e) { $dateTo = Carbon::now(); }
+            $dateFrom = null;
+            if ($dateFromRaw) {
+                try { $dateFrom = $dateFromRaw instanceof \DateTimeInterface ? Carbon::instance($dateFromRaw) : Carbon::parse((string)$dateFromRaw); }
+                catch (\Throwable $e) { $dateFrom = null; }
+            }
+
+            // Subject
+            $subject = trim((string) $request->input('subject', ''));
+            if ($subject === '') {
+                $cadenceLabel = ucfirst($cadence);
+                if ($cadence === 'daily') {
+                    $subjectDate = $dateTo->format('d/m/Y');
+                    $subject = "[Rumble] {$cadenceLabel} Report {$subjectDate}";
+                } else {
+                    if ($dateFrom) {
+                        $subject = "[Rumble] {$cadenceLabel} Report " . $dateFrom->format('d/m') . ' - ' . $dateTo->format('d/m/Y');
+                    } else if ($dateStr) {
+                        $subject = "[Rumble] {$cadenceLabel} Report {$dateStr}";
+                    } else {
+                        $subject = "[Rumble] {$cadenceLabel} Report {$dateTo->format('d/m/Y')}";
+                    }
+                }
+            }
+
+            // Build HTML and Text bodies
+            if ($isFullBody) {
+                // Frontend provided a complete HTML body (with greeting/footer/table)
+                $htmlBody = $htmlInput;
+                $textBody = trim(strip_tags($htmlInput));
+            } else {
+                // Greeting/body preface with dynamic date text and link
+                $daysDiff = Carbon::today()->diffInDays($dateTo);
+                $datePhrase = ($cadence === 'daily' && $daysDiff <= 2) ? 'yesterday' : $dateTo->format('F j, Y');
+                $linkedDatePhrase = $sheetUrl ? ('<a href="' . e($sheetUrl) . '" target="_blank" rel="noopener">' . e($datePhrase) . '</a>') : e($datePhrase);
+                $preface = '<p style="margin:0 0 12px 0; font-family:Arial,Helvetica,sans-serif; font-size:14px; color:#334155;">'
+                    . 'Here is the Rumble ' . e($cadence) . ' report for ' . $linkedDatePhrase . '.</p>';
+
+                // Compose a minimal HTML document
+                $htmlBody = '<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body>'
+                    . $preface
+                    . '<div style="margin-top:8px; font-family:Arial,Helvetica,sans-serif; font-size:13px; color:#334155;">'
+                    . $htmlInput
+                    . '</div>'
+                    . '</body></html>';
+
+                // Text fallback (strip tags)
+                $textBody = 'Rumble ' . $cadence . ' report for ' . strip_tags($datePhrase) . ($sheetUrl ? ("\n" . $sheetUrl) : '') . "\n\n" . strip_tags($htmlInput);
+            }
+
+            // Recipients
+            $to = 'Jesse De Pril <jesse@logicmedia.be>';
+            $cc = [
+                'Alex Tkachuk <alex@logicmedia.be>',
+                'Aleksandra Milutinovic <aleksandra@logicmedia.be>',
+                'Boris Nikolić <boris@logicmedia.be>',
+            ];
+
+            $fromName = config('mail.from.name', 'Allan');
+            $fromEmail = config('mail.from.address') ?: 'no-reply@example.com';
+            $fromHeader = $fromName ? ($fromName . ' <' . $fromEmail . '>') : $fromEmail;
+
+            // Build multipart/alternative MIME
+            $boundary = '=_Alt_' . bin2hex(random_bytes(12));
+            $raw = '';
+            $raw .= 'To: ' . $to . "\r\n";
+            if (!empty($cc)) { $raw .= 'Cc: ' . implode(', ', $cc) . "\r\n"; }
+            $raw .= 'Subject: ' . $subject . "\r\n";
+            $raw .= 'From: ' . $fromHeader . "\r\n";
+            $raw .= 'MIME-Version: 1.0' . "\r\n";
+            $raw .= 'Content-Type: multipart/alternative; boundary="' . $boundary . '"' . "\r\n\r\n";
+            // text part
+            $raw .= '--' . $boundary . "\r\n";
+            $raw .= 'Content-Type: text/plain; charset="UTF-8"' . "\r\n";
+            $raw .= 'Content-Transfer-Encoding: 7bit' . "\r\n\r\n";
+            $raw .= $textBody . "\r\n\r\n";
+            // html part
+            $raw .= '--' . $boundary . "\r\n";
+            $raw .= 'Content-Type: text/html; charset="UTF-8"' . "\r\n";
+            $raw .= 'Content-Transfer-Encoding: 7bit' . "\r\n\r\n";
+            $raw .= $htmlBody . "\r\n\r\n";
+            $raw .= '--' . $boundary . '--';
+
+            $message = new \Google\Service\Gmail\Message();
+            $message->setRaw($this->base64UrlEncode($raw));
+            $draft = new \Google\Service\Gmail\Draft(['message' => $message]);
+            $created = $gmail->users_drafts->create('me', $draft);
+
+            return response()->json([
+                'draftId' => $created ? $created->getId() : null,
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('createRumbleGmailDraft failed: ' . $e->getMessage(), [ 'trace' => $e->getTraceAsString() ]);
+            return response()->json([
+                'error' => 'google_api_error',
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    protected function base64UrlEncode(string $data): string
+    {
+        return rtrim(strtr(base64_encode($data), '+/', '-_'), '=');
+    }
+
     public function createGoogleBinomSheet(Request $request)
     {
         $request->validate([

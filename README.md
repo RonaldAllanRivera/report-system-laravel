@@ -279,6 +279,18 @@ Roadmap (APIs & automation):
   - Robust listener ordering avoids race conditions; a 120s timeout fallback prevents indefinite waiting if the popup is closed early.
   - Ensure your browser allows popups for the app domain.
 
+### Create Gmail Draft (Rumble - Binom Report)
+- Each section has a green "CREATE DRAFT" button that creates a Gmail draft for the current date range.
+- Email body (built on the frontend and sent as full HTML):
+  - Greeting: "Hello Jesse," and closing: "Thanks, Allan".
+  - Intro: "Here is the Rumble <Cadence> Report from <yesterday/period>" with the phrase linked to the created Google Sheet when available.
+  - Table: final computed values only (no formulas); visible borders and padding for readability; conditional background colors for P/L and ROI (green when > 0, red when < 0).
+- Backend respects a flag to use the provided full HTML body as-is to avoid duplicate prefaces.
+- OAuth flow matches Create Sheet:
+  - Requires scope `https://www.googleapis.com/auth/gmail.compose`.
+  - If not authorized, a popup prompts consent, then creation resumes automatically; includes a timeout safety.
+- Subject and recipients are composed on the backend; adjust defaults in `app/Http/Controllers/GoogleSheetsController.php` if needed.
+
 ### Create Google Sheet (Google Binom Report)
  - Each section has a blue "CREATE SHEET" button that builds a Google Sheet mirroring the on-screen Google Binom table.
  - Sheet name = `<date range> - Google Ads` (e.g., `28/07 - 03/08 - Google Ads`)
