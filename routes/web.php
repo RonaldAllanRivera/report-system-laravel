@@ -15,6 +15,7 @@ Route::post('/google/sheets/rumble/create', [GoogleSheetsController::class, 'cre
 Route::post('/google/sheets/google-binom/create', [GoogleSheetsController::class, 'createGoogleBinomSheet'])->middleware('auth')->name('google.sheets.google_binom.create');
 // Gmail (draft) routes
 Route::post('/google/gmail/rumble/create-draft', [GoogleSheetsController::class, 'createRumbleGmailDraft'])->middleware('auth')->name('google.gmail.rumble.create_draft');
+Route::post('/google/gmail/google-binom/create-draft', [GoogleSheetsController::class, 'createGoogleBinomGmailDraft'])->middleware('auth')->name('google.gmail.google_binom.create_draft');
 
 // Invoices
 Route::get('/invoices/{invoice}/download', [InvoiceController::class, 'download'])

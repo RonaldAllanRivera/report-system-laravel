@@ -169,6 +169,7 @@ Roadmap (APIs & automation):
   - `GET /google/callback` → saves token and notifies opener
   - `POST /google/sheets/rumble/create` (auth required) → creates the Google Sheet
   - `POST /google/sheets/google-binom/create` (auth required) → creates the Google Binom sheet
+  - `POST /google/gmail/google-binom/create-draft` (auth required) → creates a Gmail draft for Google Binom
 4. **Run migrations:**
    ```bash
    php artisan migrate
@@ -307,6 +308,16 @@ Roadmap (APIs & automation):
  - Auto-resize columns A..H.
  - File is moved to a Drive folder based on cadence parents and optional year subfolder (see env keys).
  - OAuth flow matches Rumble: if not authorized, popup prompts consent, then creation resumes automatically; includes a 120s timeout safety.
+
+### Create Gmail Draft (Google Binom Report)
+- Each section has a green "CREATE DRAFT" button that creates a Gmail draft for the current date range.
+- Email body (built on the frontend and sent as full HTML):
+  - Greeting: "Hello Jesse," and closing: "Thanks, Allan".
+  - Intro: "Here is the Google <Cadence> Report from <period>" with the date phrase linked to the created Google Sheet when available.
+  - Table: summary-only (per-account Account Summary rows and bottom SUMMARY); no formulas; conditional backgrounds for P/L, ROI, and ROI Last (green `#a3da9d` when > 0, red `#ff8080` when < 0); header uses `#dadada` background.
+- Backend respects a flag to use the provided full HTML body as-is (`is_full_body`) to avoid duplicate preface/footer.
+- OAuth flow matches Create Sheet and requires scope `https://www.googleapis.com/auth/gmail.compose`.
+- Subject is composed automatically as "Weekly Report dd.mm.YYYY - dd.mm.YYYY" (or Monthly accordingly).
 
  ## Import Formats
 - Google Data (CSV): `Account name`, `Campaign`, `Cost`

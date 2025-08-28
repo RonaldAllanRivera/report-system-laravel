@@ -22,7 +22,7 @@
         </div>
         @forelse($sections as $section)
             @php($report = $section['report'])
-            <div x-data="{ open: false, copying: false, copyingSummary: false, creating: false }" class="rounded-lg border bg-white" wire:key="section-{{ $section['report_type'] }}-{{ $section['date_from'] }}-{{ $section['date_to'] }}">
+            <div x-data="{ open: false, copying: false, copyingSummary: false, creating: false, creatingDraft: false }" class="rounded-lg border bg-white" wire:key="section-{{ $section['report_type'] }}-{{ $section['date_from'] }}-{{ $section['date_to'] }}">
                 <div @click="open = !open" class="flex items-center justify-between px-4 py-3 cursor-pointer">
                     <div class="font-medium text-gray-700">
                         {{ \Illuminate\Support\Carbon::parse($section['date_from'])->format('F j, Y') }} — {{ \Illuminate\Support\Carbon::parse($section['date_to'])->format('F j, Y') }}
@@ -37,6 +37,18 @@
                             class="ml-2 text-red-600 hover:text-red-700 font-semibold text-xs uppercase tracking-wide {{ $report['has_rows'] ? '' : 'opacity-40 pointer-events-none' }}">
                             <span x-show="!copying">COPY TABLE</span>
                             <span x-show="copying" class="text-green-600">COPIED</span>
+                        </button>
+                        <button type="button"
+                            @click.stop="creatingDraft=true; GB_createDraft($refs.tbl,
+                              '{{ \Illuminate\Support\Carbon::parse($section['date_from'])->format('d/m') }} - {{ \Illuminate\Support\Carbon::parse($section['date_to'])->format('d/m') }}',
+                              '{{ $section['report_type'] ?? 'weekly' }}',
+                              '{{ $section['date_to'] }}',
+                              '{{ $section['date_from'] }}'
+                            ).finally(()=>creatingDraft=false)"
+                            title="Create a Gmail draft with SUMMARY table"
+                            class="ml-2 text-emerald-600 hover:text-emerald-700 font-semibold text-xs uppercase tracking-wide {{ $report['has_rows'] ? '' : 'opacity-40 pointer-events-none' }}">
+                            <span x-show="!creatingDraft">CREATE DRAFT</span>
+                            <span x-show="creatingDraft" class="text-green-600">CREATING…</span>
                         </button>
                         <button type="button" @click.stop="GB_copySummary($refs.tbl); copyingSummary = true; setTimeout(()=>copyingSummary=false, 1200)" title="Copy account summaries to clipboard"
                             class="ml-2 text-indigo-600 hover:text-indigo-700 font-semibold text-xs uppercase tracking-wide {{ $report['has_rows'] ? '' : 'opacity-40 pointer-events-none' }}">
@@ -640,4 +652,218 @@
       try { if (pendingWin && !pendingWin.closed) pendingWin.close(); } catch (_) {}
     }
   };
+
+  // Build values array for Google Sheet (same as GB_createSheet but reusable)
+  window.GB_buildSheetValues = window.GB_buildSheetValues || function(table, dateStr) {
+    if (!table) return [];
+    const headRow = table.querySelector('thead tr');
+    const colCount = headRow ? Array.from(headRow.cells).reduce((a,c)=>a+(c.colSpan||1),0) : 8;
+    const rows = Array.from(table.querySelectorAll('thead tr, tbody tr, tfoot tr'));
+    const moneyToNum = s => (s||'').replace(/[^0-9.\-]/g,'');
+    const values = [];
+    // Date row at the top (row 1)
+    const dateRow = new Array(colCount).fill('');
+    dateRow[0] = dateStr || '';
+    values.push(dateRow);
+    let groupStartRow = null, groupEndRow = null;
+    const accountSummaryRows = [];
+    const isHeadTag = (tr) => tr.parentElement && tr.parentElement.tagName.toLowerCase()==='thead';
+    rows.forEach((tr, idx) => {
+      const rowNumber = idx + 2; // date row is 1
+      const isHead = isHeadTag(tr);
+      const cells = Array.from(tr.cells);
+      const parentTag = tr.parentElement ? tr.parentElement.tagName.toLowerCase() : '';
+      const secondText = (cells[1] ? (cells[1].innerText||'') : '').replace(/\s+/g,' ').trim();
+      const isAccountSummary = !isHead && parentTag==='tbody' && secondText.toLowerCase()==='account summary';
+      const isSpacer = !isHead && parentTag==='tbody' && cells.length===1 && ((cells[0].colSpan||1)>= (headRow ? headRow.cells.length : 8));
+      const isFoot = parentTag==='tfoot';
+      const isSummaryRow = isFoot && secondText.toLowerCase()==='summary';
+      const isDataRow = !isHead && !isAccountSummary && !isSpacer && !isFoot;
+      if (isDataRow) { if (groupStartRow === null) groupStartRow = rowNumber; groupEndRow = rowNumber; }
+      if (isAccountSummary) accountSummaryRows.push(rowNumber);
+      const out = new Array(colCount).fill('');
+      cells.forEach((td, ci0) => {
+        const span = td.colSpan || 1;
+        const raw = (td.innerText||'').replace(/\s+/g,' ').trim();
+        let ci = ci0;
+        if (span > 1) ci = ci0; // only write into first spanned column
+        if (ci < colCount) {
+          let val = raw;
+          if (!isHead) {
+            const col = ci + 1; // 1-indexed
+            // Normalize numeric $ columns: C(3), D(4), E(5)
+            if (col===3 || col===4 || col===5) { val = moneyToNum(val) || ''; }
+            // P/L formula (E) = D - C
+            if (col===5) { val = raw ? `=D${rowNumber}-C${rowNumber}` : ''; }
+            // ROI formula (F) numeric
+            if (col===6) { val = raw ? `=IF(C${rowNumber}>0, (D${rowNumber}/C${rowNumber})-1, "")` : ''; }
+            // Account Summary: Spend/Revenue sums over group
+            if (isAccountSummary && groupStartRow !== null && groupEndRow !== null) {
+              if (col===3) val = `=SUM(C${groupStartRow}:C${groupEndRow})`;
+              if (col===4) val = `=SUM(D${groupStartRow}:D${groupEndRow})`;
+            }
+            // Bottom SUMMARY row: sum Account Summary rows for C/D
+            if (isSummaryRow && accountSummaryRows.length) {
+              if (col===3) val = `=${accountSummaryRows.map(r => `C${r}`).join('+')}`;
+              if (col===4) val = `=${accountSummaryRows.map(r => `D${r}`).join('+')}`;
+            }
+          }
+          out[ci] = val;
+        }
+      });
+      values.push(out);
+      if (isAccountSummary) { groupStartRow = null; groupEndRow = null; }
+    });
+    return values;
+  };
+
+  // Silently create a Google Sheet and return its URL (handles OAuth)
+  window.GB_createSheetSilently = window.GB_createSheetSilently || async function(table, dateStr, cadence, dateTo) {
+    try {
+      const values = GB_buildSheetValues(table, dateStr);
+      const payload = { title: `${dateStr || ''} - Google Ads`, values, cadence, date_to: dateTo };
+      const postOnce = async () => fetch('{{ route('google.sheets.google_binom.create') }}', {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' }, body: JSON.stringify(payload)
+      });
+      let resp = await postOnce();
+      if (resp.status === 401) {
+        const data = await resp.json().catch(() => ({}));
+        if (data && data.authorizeUrl) {
+          const authUrl = data.authorizeUrl;
+          const authWin = window.open(authUrl, '_blank');
+          await new Promise((resolve, reject) => {
+            const onMsg = async (ev) => {
+              try {
+                if (ev.origin !== window.location.origin) return;
+                if (!ev.data || ev.data.type !== 'google-auth-success') return;
+                window.removeEventListener('message', onMsg);
+                resolve();
+              } catch (e) { reject(e); }
+            };
+            window.addEventListener('message', onMsg);
+            setTimeout(() => { try { window.removeEventListener('message', onMsg); } catch(_){}; reject(new Error('auth-timeout')); }, 120000);
+          }).catch(() => { /* ignore */ });
+          try { if (authWin && !authWin.closed) authWin.close(); } catch(_){}
+          resp = await postOnce();
+        }
+      }
+      if (!resp.ok) return null;
+      const json = await resp.json().catch(() => ({}));
+      return json && json.spreadsheetUrl ? json.spreadsheetUrl : null;
+    } catch (_) { return null; }
+  };
+
+  // Extract SUMMARY table (account summaries + bottom summary) as HTML only (no formulas)
+  window.GB_extractSummaryHtml = window.GB_extractSummaryHtml || function(table) {
+    if (!table) return '<table></table>';
+    const getText = (el) => (el?.innerText || '').replace(/\s+/g, ' ').trim();
+    const headCells = Array.from(table.querySelectorAll('thead tr th'));
+    const hdrRoiPrev = headCells[6] ? getText(headCells[6]) : 'ROI LAST WEEK';
+    const headers = ['ACCOUNT NAME','TOTAL SPEND','REVENUE','P/L','ROI', hdrRoiPrev];
+    const outRows = [];
+    outRows.push(headers);
+    const tbodyRows = Array.from(table.querySelectorAll('tbody tr')).filter(tr => tr.cells && tr.cells.length >= 6);
+    const getCellText = (td) => (td?.innerText || '').replace(/\s+/g, ' ').trim();
+    tbodyRows.forEach(tr => {
+      const cells = Array.from(tr.cells);
+      const label = (cells[1] ? getCellText(cells[1]) : '').toLowerCase();
+      if (label === 'account summary') {
+        const account = getCellText(cells[0]);
+        const spend = getCellText(cells[2]);
+        const revenue = getCellText(cells[3]);
+        const pl = getCellText(cells[4]);
+        const roi = getCellText(cells[5]);
+        const roiPrev = cells[6] ? getCellText(cells[6]) : '';
+        outRows.push([account, spend, revenue, pl, roi, roiPrev]);
+      }
+    });
+    const foot = table.querySelector('tfoot tr');
+    if (foot && foot.cells && foot.cells.length >= 6) {
+      const spend = getCellText(foot.cells[2]);
+      const revenue = getCellText(foot.cells[3]);
+      const pl = getCellText(foot.cells[4]);
+      const roi = getCellText(foot.cells[5]);
+      const roiPrev = foot.cells[6] ? getCellText(foot.cells[6]) : '';
+      outRows.push(['SUMMARY', spend, revenue, pl, roi, roiPrev]);
+    }
+    const esc = (s) => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\"/g,'&quot;');
+    const toMoney = (s) => {
+      if (!s) return NaN; let t = String(s).trim(); let neg = false; if (t.includes('(') && t.includes(')')) { neg = true; t = t.replace(/[()]/g,''); }
+      if (t.startsWith('-')) { neg = !neg || true; t = t.slice(1); } t = t.replace(/[$,\s]/g,''); const n = parseFloat(t); return isNaN(n) ? NaN : (neg ? -Math.abs(n) : n);
+    };
+    const toPercent = (s) => {
+      if (!s) return NaN; let t = String(s).trim(); let neg = false; if (t.includes('(') && t.includes(')')) { neg = true; t = t.replace(/[()]/g,''); }
+      if (t.startsWith('-')) { neg = !neg || true; t = t.slice(1); } t = t.replace(/[%,\s]/g,''); const n = parseFloat(t); return isNaN(n) ? NaN : (neg ? -Math.abs(n) : n);
+    };
+    const headHtml = `<tr>${outRows[0].map(h => `<th style="background-color:#dadada;">${esc(h)}</th>`).join('')}</tr>`;
+    const bodyHtml = outRows.slice(1).map(row => {
+      const tds = row.map((v,i) => {
+        const e = esc(v);
+        let style = '';
+        if (i === 3) { const n = toMoney(v); if (!isNaN(n) && n !== 0) style = `background-color:${n>0?'#a3da9d':'#ff8080'};`; }
+        if (i === 4 || i === 5) { const n = toPercent(v); if (!isNaN(n) && n !== 0) style = `background-color:${n>0?'#a3da9d':'#ff8080'};`; }
+        if (i===0 && v === 'SUMMARY') return `<td${style?` style="${style}"`:''}><b><i>${e}</i></b></td>`;
+        return `<td${style?` style="${style}"`:''}>${e}</td>`;
+      }).join('');
+      return `<tr>${tds}</tr>`;
+    }).join('');
+    return `<table><thead>${headHtml}</thead><tbody>${bodyHtml}</tbody></table>`;
+  };
+
+  // Create Gmail Draft for Google Binom: build SUMMARY HTML, ensure Sheet exists, then call Gmail draft endpoint
+  window.GB_createDraft = window.GB_createDraft || async function(table, dateStr, cadence, dateTo, dateFrom) {
+    if (!table) return;
+    try {
+      // 1) Build SUMMARY HTML for email body
+      const tableHtml = GB_extractSummaryHtml(table);
+      // 2) Ensure a Google Sheet is created to link in the email
+      const sheetUrl = await GB_createSheetSilently(table, dateStr, cadence, dateTo);
+      // 3) Compose body
+      const cadenceLabel = cadence ? (cadence.charAt(0).toUpperCase() + cadence.slice(1)) : 'Weekly';
+      const linkText = dateStr || 'the selected period';
+      const linkedPhrase = sheetUrl ? `<a href="${sheetUrl}" target="_blank" rel="noopener">${linkText}</a>` : linkText;
+      const bodyTop = `<p style="margin:0 0 12px 0;">Hello Jesse,</p>` +
+                      `<p style="margin:0 0 16px 0;">Here is the Google ${cadenceLabel} Report from ${linkedPhrase}.</p>`;
+      const bodyBottom = `<p style=\"margin:16px 0 0 0;\">Thanks,<br/>Allan</p>`;
+      const html = `<div style=\"font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.4;\">${bodyTop}${tableHtml}${bodyBottom}</div>`;
+      // 4) Call Gmail draft endpoint
+      const payload = { html: html, cadence, date_to: dateTo, date_from: dateFrom || null, date_str: dateStr || '', sheet_url: sheetUrl || '', is_full_body: true };
+      const postOnce = async () => fetch('{{ route('google.gmail.google_binom.create_draft') }}', {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' }, body: JSON.stringify(payload)
+      });
+      let resp = await postOnce();
+      if (resp.status === 401) {
+        const data = await resp.json().catch(() => ({}));
+        if (data && data.authorizeUrl) {
+          const authUrl = data.authorizeUrl;
+          const authWin = window.open(authUrl, '_blank');
+          await new Promise((resolve, reject) => {
+            const onMsg = async (ev) => {
+              try { if (ev.origin !== window.location.origin) return; if (!ev.data || ev.data.type !== 'google-auth-success') return; window.removeEventListener('message', onMsg); resolve(); } catch (e) { reject(e); }
+            };
+            window.addEventListener('message', onMsg);
+            setTimeout(() => { try { window.removeEventListener('message', onMsg); } catch(_){}; reject(new Error('auth-timeout')); }, 120000);
+          }).catch(() => { /* ignore */ });
+          try { if (authWin && !authWin.closed) authWin.close(); } catch(_){}
+          resp = await postOnce();
+        }
+      }
+      if (!resp.ok) {
+        const errData = await resp.json().catch(() => null);
+        const msg = errData && (errData.message || errData.error) ? (errData.message || errData.error) : `HTTP ${resp.status}`;
+        alert('Failed to create Gmail draft: ' + msg);
+        return;
+      }
+      const data = await resp.json().catch(() => ({}));
+      if (data && data.draftId) {
+        alert('Gmail draft created successfully. Draft ID: ' + data.draftId + '\nCheck your Gmail Drafts folder.');
+      } else {
+        alert('Gmail draft created.');
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Failed to create Gmail draft.');
+    }
+  };
+
 </script>
