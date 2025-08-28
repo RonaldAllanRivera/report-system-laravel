@@ -120,6 +120,7 @@ Roadmap (APIs & automation):
    - Form: Name, Bill To, Date (today, disabled), Invoice # (auto `YYYY-NNN`), Notes
    - Line Items: item, quantity, rate; amount and total auto-calculated
    - Action: Download PDF (saves invoice + items, then downloads)
+   - Action: Create Gmail Draft (attaches the generated invoice PDF)
    - PDF: embedded Arial; filename `Allan - {invoice_number}.pdf`
 
 ## Technologies
@@ -216,7 +217,7 @@ Roadmap (APIs & automation):
 - Usage:
   - Navigate to `Tools → Invoice`.
   - If not authorized, a yellow "Connect Google" action appears; click it to start authorization.
-  - When authorized, use the green "Create Gmail Draft" action, fill in To/Subject/Body, and submit. A Gmail draft will be created in your account. Success shows the Draft ID.
+  - When authorized, use the green "Create Gmail Draft" action, fill in To/Subject/Body, and submit. A Gmail draft will be created with the invoice PDF attached (filename `Allan - {invoice_number}.pdf`). Success shows the Draft ID.
   - From email address uses `mail.from.*` in your config; body is plain text.
 
 ## Usage

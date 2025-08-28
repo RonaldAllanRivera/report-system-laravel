@@ -1,6 +1,6 @@
 ## [0.6.4] - 2025-08-28
 ### Added
-- Invoice tool: "Create Gmail Draft" action uses Gmail API to create a draft instead of sending locally.
+- Invoice tool: "Create Gmail Draft" action uses Gmail API to create a draft with the generated invoice PDF attached (instead of sending locally).
 - Invoice tool: "Connect Google" header action appears when OAuth is required and links to `/google/auth`.
 
 ### Changed

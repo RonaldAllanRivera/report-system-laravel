@@ -21,6 +21,7 @@ use Filament\Pages\Page;
 use Illuminate\Support\Carbon;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\Mail;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Google\Client as GoogleClient;
 use Google\Service\Gmail as GoogleGmail;
 use Google\Service\Gmail\Message as GoogleGmailMessage;
@@ -317,8 +318,11 @@ class InvoiceGenerator extends Page implements HasForms
         $toEmail = (string) ($data['to_email'] ?? '');
         $subject = (string) ($data['subject'] ?? '');
         $body = (string) ($data['body'] ?? '');
-        // Create Gmail draft using existing Google OAuth token
+        // Create Gmail draft (with PDF attachment) using existing Google OAuth token
         try {
+            // 1) Create invoice from current form and render PDF into memory
+            [$invoice, $pdfFileName, $pdfBytes] = $this->createInvoiceAndPdfFromForm();
+
             $client = new GoogleClient();
             $client->setClientId(config('services.google.client_id'));
             $client->setClientSecret(config('services.google.client_secret'));
@@ -354,12 +358,33 @@ class InvoiceGenerator extends Page implements HasForms
                 $fromEmail = 'no-reply@example.com';
             }
 
-            $rawMessageString =
-                'To: ' . ($toName ? ($toName . ' <' . $toEmail . '>') : $toEmail) . "\r\n" .
-                'Subject: ' . $subject . "\r\n" .
-                'From: ' . ($fromName ? ($fromName . ' <' . $fromEmail . '>') : $fromEmail) . "\r\n" .
-                'Content-Type: text/plain; charset="UTF-8"' . "\r\n\r\n" .
-                $body;
+            // Build a multipart/mixed MIME email with PDF attachment
+            $boundary = '=_Part_' . bin2hex(random_bytes(12));
+            $toHeader = $toName ? ($toName . ' <' . $toEmail . '>') : $toEmail;
+            $fromHeader = $fromName ? ($fromName . ' <' . $fromEmail . '>') : $fromEmail;
+
+            $rawMessageString = '';
+            $rawMessageString .= 'To: ' . $toHeader . "\r\n";
+            $rawMessageString .= 'Subject: ' . $subject . "\r\n";
+            $rawMessageString .= 'From: ' . $fromHeader . "\r\n";
+            $rawMessageString .= 'MIME-Version: 1.0' . "\r\n";
+            $rawMessageString .= 'Content-Type: multipart/mixed; boundary="' . $boundary . '"' . "\r\n\r\n";
+
+            // Text part
+            $rawMessageString .= '--' . $boundary . "\r\n";
+            $rawMessageString .= 'Content-Type: text/plain; charset="UTF-8"' . "\r\n";
+            $rawMessageString .= 'Content-Transfer-Encoding: 7bit' . "\r\n\r\n";
+            $rawMessageString .= $body . "\r\n\r\n";
+
+            // Attachment part (PDF)
+            $rawMessageString .= '--' . $boundary . "\r\n";
+            $rawMessageString .= 'Content-Type: application/pdf; name="' . $pdfFileName . '"' . "\r\n";
+            $rawMessageString .= 'Content-Transfer-Encoding: base64' . "\r\n";
+            $rawMessageString .= 'Content-Disposition: attachment; filename="' . $pdfFileName . '"' . "\r\n\r\n";
+            $rawMessageString .= rtrim(chunk_split(base64_encode($pdfBytes), 76, "\r\n")) . "\r\n\r\n";
+
+            // End boundary
+            $rawMessageString .= '--' . $boundary . '--';
 
             $message = new GoogleGmailMessage();
             $message->setRaw($this->base64UrlEncode($rawMessageString));
@@ -370,7 +395,7 @@ class InvoiceGenerator extends Page implements HasForms
             $draftId = $created->getId();
             Notification::make()
                 ->title('Draft created')
-                ->body('Gmail draft created successfully' . ($draftId ? ' (ID: ' . $draftId . ')' : '') . '.')
+                ->body('Gmail draft created with invoice attached' . ($draftId ? ' (ID: ' . $draftId . ')' : '') . '.')
                 ->success()
                 ->send();
         } catch (\Throwable $e) {
@@ -387,6 +412,66 @@ class InvoiceGenerator extends Page implements HasForms
         return rtrim(strtr(base64_encode($data), '+/', '-_'), '=');
     }
 
+    /**
+     * Create an Invoice based on the current form state and return the model plus PDF bytes and filename.
+     * @return array{0: \App\Models\Invoice, 1: string, 2: string}
+     */
+    protected function createInvoiceAndPdfFromForm(): array
+    {
+        $data = $this->form->getState();
+
+        // Always use today's date and compute the next unique invoice number for the year
+        $date = Carbon::today();
+        $invoiceNumber = $this->nextInvoiceNumberForYear($date->year);
+
+        $items = (array) ($data['items'] ?? []);
+        $total = 0;
+        foreach ($items as &$r) {
+            $qty = (float) ($r['quantity'] ?? 0);
+            $rate = (float) ($r['rate'] ?? 0);
+            $r['amount'] = round($qty * $rate, 2);
+            $total += $r['amount'];
+        }
+        unset($r);
+
+        $invoice = Invoice::create([
+            'name' => (string) ($data['name'] ?? ''),
+            'bill_to' => (string) ($data['bill_to'] ?? ''),
+            'invoice_number' => $invoiceNumber,
+            'invoice_date' => $date->toDateString(),
+            'notes' => (string) ($data['notes'] ?? ''),
+            'payment_link' => (string) ($data['payment_link'] ?? ''),
+            'total' => round($total, 2),
+        ]);
+
+        foreach ($items as $row) {
+            if (!trim((string) ($row['item'] ?? ''))) {
+                continue;
+            }
+            InvoiceItem::create([
+                'invoice_id' => $invoice->id,
+                'item' => (string) $row['item'],
+                'quantity' => (int) ($row['quantity'] ?? 0),
+                'rate' => (float) ($row['rate'] ?? 0),
+                'amount' => (float) ($row['amount'] ?? 0),
+            ]);
+        }
+
+        // Render PDF similar to InvoiceController::download
+        $pdf = Pdf::loadView('invoices.pdf', [
+            'invoice' => $invoice->load('items'),
+        ])->setPaper('A4')
+          ->setOptions([
+              'defaultFont' => 'arialembedded',
+              'fontDir' => storage_path('fonts'),
+              'fontCache' => storage_path('fonts'),
+          ]);
+
+        $fileName = 'Allan - ' . $invoice->invoice_number . '.pdf';
+        $pdfBytes = $pdf->output();
+
+        return [$invoice, $fileName, $pdfBytes];
+    }
     protected function needsGoogleAuth(): bool
     {
         try {
