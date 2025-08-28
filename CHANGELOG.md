@@ -1,3 +1,15 @@
+## [0.6.4] - 2025-08-28
+### Added
+- Invoice tool: "Create Gmail Draft" action uses Gmail API to create a draft instead of sending locally.
+- Invoice tool: "Connect Google" header action appears when OAuth is required and links to `/google/auth`.
+
+### Changed
+- Default Google OAuth scopes now include `https://www.googleapis.com/auth/gmail.compose` in `config/services.php`.
+
+### Docs
+- README: Documented Gmail Drafts usage, authorization flow, and updated sample `GOOGLE_SCOPES` to include `gmail.compose`.
+- `.env.example`: Provided a sensible `GOOGLE_SCOPES` default including `gmail.compose`.
+
 ## [0.6.3] - 2025-08-25
 ### Added
 - Filament "Invoice" tool under Tools:

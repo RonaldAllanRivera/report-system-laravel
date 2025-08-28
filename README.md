@@ -154,7 +154,7 @@ Roadmap (APIs & automation):
   - `GOOGLE_CLIENT_ID=...`
   - `GOOGLE_CLIENT_SECRET=...`
   - `GOOGLE_REDIRECT_URI=http://localhost:8000/google/callback`
-  - `GOOGLE_SCOPES="https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file"`
+  - `GOOGLE_SCOPES="https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/gmail.compose"`
   - Optional: `GOOGLE_APP_NAME="Report System"`
 - Optional Google Drive folder placement (used by Create Sheet):
   - `GOOGLE_DRIVE_DEFAULT_PARENT_ID=` (fallback parent folder)
@@ -205,6 +205,19 @@ Roadmap (APIs & automation):
  - Filename: downloads as `Allan - {invoice_number}.pdf` (fixed; no timestamps).
  - Font cache: DomPDF stores font metrics in `storage/fonts/`. If font changes don't appear, delete files in that folder; metrics regenerate on next render.
  - Version control: `.gitignore` excludes `storage/fonts/` and `public/fonts/*.ttf` so caches and local font binaries are not committed.
+
+### Gmail Drafts (Invoice tool)
+- Purpose: Instead of sending email locally, the Invoice page can create a Gmail draft via the Gmail API.
+- Requirements:
+  - OAuth consent completed with scopes including `gmail.compose` (see `.env` sample above).
+  - Token is stored at `storage/app/private/google_oauth_token.json`.
+- Authorize:
+  - Visit `/google/auth` and complete consent. If scopes change, delete the token file and re-authorize.
+- Usage:
+  - Navigate to `Tools → Invoice`.
+  - If not authorized, a yellow "Connect Google" action appears; click it to start authorization.
+  - When authorized, use the green "Create Gmail Draft" action, fill in To/Subject/Body, and submit. A Gmail draft will be created in your account. Success shows the Draft ID.
+  - From email address uses `mail.from.*` in your config; body is plain text.
 
 ## Usage
 - Log in to Filament Admin

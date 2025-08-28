@@ -39,7 +39,7 @@ return [
         'client_id' => env('GOOGLE_CLIENT_ID'),
         'client_secret' => env('GOOGLE_CLIENT_SECRET'),
         'redirect' => env('GOOGLE_REDIRECT_URI'),
-        'scopes' => explode(' ', env('GOOGLE_SCOPES', 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file')),
+        'scopes' => explode(' ', env('GOOGLE_SCOPES', 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/gmail.compose')),
         'app_name' => env('GOOGLE_APP_NAME', 'Report System'),
     ],
 

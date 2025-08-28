@@ -19,6 +19,12 @@ use Filament\Forms\Get;
 use Filament\Forms\Set;
 use Filament\Pages\Page;
 use Illuminate\Support\Carbon;
+use Filament\Notifications\Notification;
+use Illuminate\Support\Facades\Mail;
+use Google\Client as GoogleClient;
+use Google\Service\Gmail as GoogleGmail;
+use Google\Service\Gmail\Message as GoogleGmailMessage;
+use Google\Service\Gmail\Draft as GoogleGmailDraft;
 
 class InvoiceGenerator extends Page implements HasForms
 {
@@ -65,6 +71,7 @@ class InvoiceGenerator extends Page implements HasForms
             'invoice_date' => $date->toDateString(),
             'invoice_number' => $this->nextInvoiceNumberForYear($date->year),
             'notes' => $last->notes ?? '',
+            'payment_link' => $last->payment_link ?? '',
             'items' => $items,
             'total' => round($total, 2),
         ]);
@@ -116,6 +123,11 @@ class InvoiceGenerator extends Page implements HasForms
                             ->disabled(),
                         TextInput::make('invoice_number')->label('Invoice #')->disabled(),
                         Textarea::make('notes')->label('Notes')->rows(3)->columnSpan(3),
+                        TextInput::make('payment_link')
+                            ->label('Payment Link')
+                            ->placeholder('https://wise.com/pay/...')
+                            ->url()
+                            ->columnSpan(3),
                     ]),
 
                 Section::make('Items')
@@ -191,7 +203,44 @@ class InvoiceGenerator extends Page implements HasForms
                 ->label('Download PDF')
                 ->icon('heroicon-o-arrow-down-tray')
                 ->color('primary')
-                ->action('createAndDownload')
+                ->action('createAndDownload'),
+
+            Actions\Action::make('connectGoogle')
+                ->label('Connect Google')
+                ->icon('heroicon-o-link')
+                ->color('warning')
+                ->url(url('/google/auth'))
+                ->openUrlInNewTab()
+                ->visible(fn () => $this->needsGoogleAuth()),
+
+            Actions\Action::make('sendEmail')
+                ->label('Create Gmail Draft')
+                ->icon('heroicon-o-paper-airplane')
+                ->color('success')
+                ->visible(fn () => !$this->needsGoogleAuth())
+                ->form([
+                    TextInput::make('to_name')
+                        ->label('To Name')
+                        ->default('Jesse De Pril')
+                        ->required(),
+                    TextInput::make('to_email')
+                        ->label('To Email')
+                        ->email()
+                        ->default('finance@logicmedia.be')
+                        ->required(),
+                    TextInput::make('subject')
+                        ->label('Subject')
+                        ->default(fn () => 'Allan Invoice ' . today()->format('d.m.Y'))
+                        ->required(),
+                    Textarea::make('body')
+                        ->label('Body')
+                        ->rows(12)
+                        ->default(fn () => $this->defaultEmailBody())
+                        ->required(),
+                ])
+                ->action(function (array $data) {
+                    $this->sendEmail($data);
+                }),
         ];
     }
 
@@ -219,6 +268,7 @@ class InvoiceGenerator extends Page implements HasForms
             'invoice_number' => $invoiceNumber,
             'invoice_date' => $date->toDateString(),
             'notes' => (string) ($data['notes'] ?? ''),
+            'payment_link' => (string) ($data['payment_link'] ?? ''),
             'total' => round($total, 2),
         ]);
 
@@ -236,5 +286,147 @@ class InvoiceGenerator extends Page implements HasForms
         }
 
         return redirect()->route('invoices.download', $invoice);
+    }
+
+    protected function defaultEmailBody(): string
+    {
+        $data = $this->form->getState();
+        $date = Carbon::today();
+        $invoiceNumber = (string) ($data['invoice_number'] ?? '') ?: $this->nextInvoiceNumberForYear($date->year);
+        $paymentLink = trim((string) ($data['payment_link'] ?? '')) ?: 'https://wise.com/pay/r/vGcZulPYen3hx54';
+
+        $lines = [
+            'Hello Jesse,',
+            '',
+            "Here's my invoice for this week.",
+            'Invoice # ' . $invoiceNumber,
+            '',
+            "Here's my payment link",
+            $paymentLink,
+            '',
+            'Thanks,',
+            'Allan',
+        ];
+
+        return implode("\n", $lines);
+    }
+
+    public function sendEmail(array $data): void
+    {
+        $toName = (string) ($data['to_name'] ?? '');
+        $toEmail = (string) ($data['to_email'] ?? '');
+        $subject = (string) ($data['subject'] ?? '');
+        $body = (string) ($data['body'] ?? '');
+        // Create Gmail draft using existing Google OAuth token
+        try {
+            $client = new GoogleClient();
+            $client->setClientId(config('services.google.client_id'));
+            $client->setClientSecret(config('services.google.client_secret'));
+            $client->setRedirectUri(config('services.google.redirect'));
+            $client->setAccessType('offline');
+            // Ensure Gmail compose scope is included
+            $client->addScope(GoogleGmail::GMAIL_COMPOSE);
+
+            $tokenPath = storage_path('app/private/google_oauth_token.json');
+            if (!file_exists($tokenPath)) {
+                throw new \RuntimeException('Google token not found. Please authorize via /google/auth');
+            }
+            $accessToken = json_decode((string) file_get_contents($tokenPath), true) ?: [];
+            $client->setAccessToken($accessToken);
+
+            if ($client->isAccessTokenExpired()) {
+                if ($client->getRefreshToken()) {
+                    $refreshed = $client->fetchAccessTokenWithRefreshToken($client->getRefreshToken());
+                    if (isset($refreshed['error'])) {
+                        throw new \RuntimeException('Failed to refresh Google token: ' . $refreshed['error']);
+                    }
+                    file_put_contents($tokenPath, json_encode($client->getAccessToken()));
+                } else {
+                    throw new \RuntimeException('Google token expired. Please re-authorize via /google/auth');
+                }
+            }
+
+            $gmail = new GoogleGmail($client);
+
+            $fromName = config('mail.from.name', 'Allan');
+            $fromEmail = config('mail.from.address');
+            if (!$fromEmail) {
+                $fromEmail = 'no-reply@example.com';
+            }
+
+            $rawMessageString =
+                'To: ' . ($toName ? ($toName . ' <' . $toEmail . '>') : $toEmail) . "\r\n" .
+                'Subject: ' . $subject . "\r\n" .
+                'From: ' . ($fromName ? ($fromName . ' <' . $fromEmail . '>') : $fromEmail) . "\r\n" .
+                'Content-Type: text/plain; charset="UTF-8"' . "\r\n\r\n" .
+                $body;
+
+            $message = new GoogleGmailMessage();
+            $message->setRaw($this->base64UrlEncode($rawMessageString));
+
+            $draft = new GoogleGmailDraft(['message' => $message]);
+            $created = $gmail->users_drafts->create('me', $draft);
+
+            $draftId = $created->getId();
+            Notification::make()
+                ->title('Draft created')
+                ->body('Gmail draft created successfully' . ($draftId ? ' (ID: ' . $draftId . ')' : '') . '.')
+                ->success()
+                ->send();
+        } catch (\Throwable $e) {
+            Notification::make()
+                ->title('Draft failed')
+                ->body('Could not create Gmail draft: ' . $e->getMessage() . '. If needed, re-authorize at /google/auth with gmail.compose scope.')
+                ->danger()
+                ->send();
+        }
+    }
+
+    protected function base64UrlEncode(string $data): string
+    {
+        return rtrim(strtr(base64_encode($data), '+/', '-_'), '=');
+    }
+
+    protected function needsGoogleAuth(): bool
+    {
+        try {
+            $tokenPath = storage_path('app/private/google_oauth_token.json');
+            if (!file_exists($tokenPath)) {
+                return true;
+            }
+
+            $token = json_decode((string) file_get_contents($tokenPath), true) ?: [];
+            if (!is_array($token) || (empty($token['access_token']) && empty($token['refresh_token']))) {
+                return true;
+            }
+
+            // Ensure the saved token includes gmail.compose scope; if not, force re-auth
+            $requiredScope = 'https://www.googleapis.com/auth/gmail.compose';
+            $tokenScopes = [];
+            if (!empty($token['scope'])) {
+                // scope can be space-delimited string
+                $tokenScopes = is_array($token['scope']) ? $token['scope'] : preg_split('/\s+/', (string) $token['scope']);
+            }
+            if ($tokenScopes && !in_array($requiredScope, $tokenScopes, true)) {
+                return true;
+            }
+
+            $client = new GoogleClient();
+            $client->setClientId(config('services.google.client_id'));
+            $client->setClientSecret(config('services.google.client_secret'));
+            $client->setRedirectUri(config('services.google.redirect'));
+            $client->setAccessType('offline');
+            $client->addScope(GoogleGmail::GMAIL_COMPOSE);
+            $client->setAccessToken($token);
+
+            // If expired and no refresh token, needs re-auth. If refresh token exists, we consider it authorized.
+            if ($client->isAccessTokenExpired() && !$client->getRefreshToken()) {
+                return true;
+            }
+
+            return false;
+        } catch (\Throwable $e) {
+            return true;
+        }
     }
 }

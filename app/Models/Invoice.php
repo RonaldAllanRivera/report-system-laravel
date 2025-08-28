@@ -16,6 +16,7 @@ class Invoice extends Model
         'invoice_number',
         'invoice_date',
         'notes',
+        'payment_link',
         'total',
     ];
 
