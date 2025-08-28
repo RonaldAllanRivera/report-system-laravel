@@ -3,15 +3,19 @@
 - Google Binom Report: green "CREATE DRAFT" button creates a Gmail draft for the selected date range (weekly/monthly).
 - Email body built on the frontend and sent as full HTML:
   - Greeting/closing included ("Hello Jesse," / "Thanks, Allan").
-  - Intro links the date phrase to the newly created Google Sheet when available.
+  - Intro links the date phrase to the newly created Google Sheet when available and shows the period in `dd.mm.YYYY - dd.mm.YYYY` format.
   - Table includes only per-account Account Summary rows plus bottom SUMMARY (no formulas) with conditional backgrounds (green `#a3da9d`, red `#ff8080`) and gray `#dadada` header.
+  - Summary table now includes 1px borders with padding and border-collapse for better Gmail rendering.
 - Frontend helpers: `GB_buildSheetValues`, `GB_createSheetSilently`, `GB_extractSummaryHtml`, `GB_createDraft`.
 - Backend endpoint: `POST /google/gmail/google-binom/create-draft` with controller method `createGoogleBinomGmailDraft`.
   - Subject: "Weekly Report dd.mm.YYYY - dd.mm.YYYY" (or Monthly accordingly).
   - Honors `is_full_body` to use provided HTML body as-is.
 
 ### Docs
-- README: Documented Google Binom Create Draft behavior and the new route.
+- README: Documented Google Binom Create Draft behavior, date format, borders/padding, and the new route.
+
+### UI
+- Moved "CREATE DRAFT" to the right of "CREATE SHEET" on the Google Binom page toolbar.
 
 ## [0.6.5] - 2025-08-28
 ### Changed

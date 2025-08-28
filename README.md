@@ -313,8 +313,8 @@ Roadmap (APIs & automation):
 - Each section has a green "CREATE DRAFT" button that creates a Gmail draft for the current date range.
 - Email body (built on the frontend and sent as full HTML):
   - Greeting: "Hello Jesse," and closing: "Thanks, Allan".
-  - Intro: "Here is the Google <Cadence> Report from <period>" with the date phrase linked to the created Google Sheet when available.
-  - Table: summary-only (per-account Account Summary rows and bottom SUMMARY); no formulas; conditional backgrounds for P/L, ROI, and ROI Last (green `#a3da9d` when > 0, red `#ff8080` when < 0); header uses `#dadada` background.
+  - Intro: "Here is the Google <Cadence> Report from <period>" where `<period>` is formatted as `dd.mm.YYYY - dd.mm.YYYY` and linked to the created Google Sheet when available.
+  - Table: summary-only (per-account Account Summary rows and bottom SUMMARY); no formulas; conditional backgrounds for P/L, ROI, and ROI Last (green `#a3da9d` when > 0, red `#ff8080` when < 0); header uses `#dadada` background; visible 1px borders (`#bfbfbf`) with padding and `border-collapse` for clean rendering in Gmail.
 - Backend respects a flag to use the provided full HTML body as-is (`is_full_body`) to avoid duplicate preface/footer.
 - OAuth flow matches Create Sheet and requires scope `https://www.googleapis.com/auth/gmail.compose`.
 - Subject is composed automatically as "Weekly Report dd.mm.YYYY - dd.mm.YYYY" (or Monthly accordingly).

@@ -38,18 +38,6 @@
                             <span x-show="!copying">COPY TABLE</span>
                             <span x-show="copying" class="text-green-600">COPIED</span>
                         </button>
-                        <button type="button"
-                            @click.stop="creatingDraft=true; GB_createDraft($refs.tbl,
-                              '{{ \Illuminate\Support\Carbon::parse($section['date_from'])->format('d/m') }} - {{ \Illuminate\Support\Carbon::parse($section['date_to'])->format('d/m') }}',
-                              '{{ $section['report_type'] ?? 'weekly' }}',
-                              '{{ $section['date_to'] }}',
-                              '{{ $section['date_from'] }}'
-                            ).finally(()=>creatingDraft=false)"
-                            title="Create a Gmail draft with SUMMARY table"
-                            class="ml-2 text-emerald-600 hover:text-emerald-700 font-semibold text-xs uppercase tracking-wide {{ $report['has_rows'] ? '' : 'opacity-40 pointer-events-none' }}">
-                            <span x-show="!creatingDraft">CREATE DRAFT</span>
-                            <span x-show="creatingDraft" class="text-green-600">CREATING…</span>
-                        </button>
                         <button type="button" @click.stop="GB_copySummary($refs.tbl); copyingSummary = true; setTimeout(()=>copyingSummary=false, 1200)" title="Copy account summaries to clipboard"
                             class="ml-2 text-indigo-600 hover:text-indigo-700 font-semibold text-xs uppercase tracking-wide {{ $report['has_rows'] ? '' : 'opacity-40 pointer-events-none' }}">
                             <span x-show="!copyingSummary">COPY SUMMARY</span>
@@ -65,6 +53,18 @@
                             class="ml-2 text-blue-600 hover:text-blue-700 font-semibold text-xs uppercase tracking-wide {{ $report['has_rows'] ? '' : 'opacity-40 pointer-events-none' }}">
                             <span x-show="!creating">CREATE SHEET</span>
                             <span x-show="creating" class="text-green-600">CREATING…</span>
+                        </button>
+                        <button type="button"
+                            @click.stop="creatingDraft=true; GB_createDraft($refs.tbl,
+                              '{{ \Illuminate\Support\Carbon::parse($section['date_from'])->format('d/m') }} - {{ \Illuminate\Support\Carbon::parse($section['date_to'])->format('d/m') }}',
+                              '{{ $section['report_type'] ?? 'weekly' }}',
+                              '{{ $section['date_to'] }}',
+                              '{{ $section['date_from'] }}'
+                            ).finally(()=>creatingDraft=false)"
+                            title="Create a Gmail draft with SUMMARY table"
+                            class="ml-2 text-emerald-600 hover:text-emerald-700 font-semibold text-xs uppercase tracking-wide {{ $report['has_rows'] ? '' : 'opacity-40 pointer-events-none' }}">
+                            <span x-show="!creatingDraft">CREATE DRAFT</span>
+                            <span x-show="creatingDraft" class="text-green-600">CREATING…</span>
                         </button>
                         <span class="ml-3 text-[11px] text-gray-500 uppercase tracking-wide" title="Full mode includes all previous-period campaigns for the account/overall.">ROI Last</span>
                         <div class="inline-flex divide-x divide-gray-200 dark:divide-gray-700 rounded-md shadow-sm overflow-hidden ring-1 ring-gray-200 dark:ring-gray-700 bg-white dark:bg-gray-900" role="group" title="Cohort mode only includes the campaigns present in the current table (current-period cohort).">
@@ -795,19 +795,20 @@
       if (!s) return NaN; let t = String(s).trim(); let neg = false; if (t.includes('(') && t.includes(')')) { neg = true; t = t.replace(/[()]/g,''); }
       if (t.startsWith('-')) { neg = !neg || true; t = t.slice(1); } t = t.replace(/[%,\s]/g,''); const n = parseFloat(t); return isNaN(n) ? NaN : (neg ? -Math.abs(n) : n);
     };
-    const headHtml = `<tr>${outRows[0].map(h => `<th style="background-color:#dadada;">${esc(h)}</th>`).join('')}</tr>`;
+    const borderCell = 'border:1px solid #bfbfbf;padding:6px 8px;';
+    const headHtml = `<tr>${outRows[0].map(h => `<th style="background-color:#dadada;${borderCell}">${esc(h)}</th>`).join('')}</tr>`;
     const bodyHtml = outRows.slice(1).map(row => {
       const tds = row.map((v,i) => {
         const e = esc(v);
-        let style = '';
-        if (i === 3) { const n = toMoney(v); if (!isNaN(n) && n !== 0) style = `background-color:${n>0?'#a3da9d':'#ff8080'};`; }
-        if (i === 4 || i === 5) { const n = toPercent(v); if (!isNaN(n) && n !== 0) style = `background-color:${n>0?'#a3da9d':'#ff8080'};`; }
-        if (i===0 && v === 'SUMMARY') return `<td${style?` style="${style}"`:''}><b><i>${e}</i></b></td>`;
-        return `<td${style?` style="${style}"`:''}>${e}</td>`;
+        let style = borderCell;
+        if (i === 3) { const n = toMoney(v); if (!isNaN(n) && n !== 0) style += `background-color:${n>0?'#a3da9d':'#ff8080'};`; }
+        if (i === 4 || i === 5) { const n = toPercent(v); if (!isNaN(n) && n !== 0) style += `background-color:${n>0?'#a3da9d':'#ff8080'};`; }
+        if (i===0 && v === 'SUMMARY') return `<td style="${style}"><b><i>${e}</i></b></td>`;
+        return `<td style="${style}">${e}</td>`;
       }).join('');
       return `<tr>${tds}</tr>`;
     }).join('');
-    return `<table><thead>${headHtml}</thead><tbody>${bodyHtml}</tbody></table>`;
+    return `<table style="border-collapse:collapse;border:1px solid #bfbfbf;"><thead>${headHtml}</thead><tbody>${bodyHtml}</tbody></table>`;
   };
 
   // Create Gmail Draft for Google Binom: build SUMMARY HTML, ensure Sheet exists, then call Gmail draft endpoint
@@ -820,7 +821,18 @@
       const sheetUrl = await GB_createSheetSilently(table, dateStr, cadence, dateTo);
       // 3) Compose body
       const cadenceLabel = cadence ? (cadence.charAt(0).toUpperCase() + cadence.slice(1)) : 'Weekly';
-      const linkText = dateStr || 'the selected period';
+      const fmtDMYdot = (iso) => {
+        try {
+          const d = new Date(iso);
+          if (!d || isNaN(d.getTime())) return iso || '';
+          const dd = String(d.getDate()).padStart(2,'0');
+          const mm = String(d.getMonth()+1).padStart(2,'0');
+          const yyyy = d.getFullYear();
+          return `${dd}.${mm}.${yyyy}`;
+        } catch (_) { return iso || ''; }
+      };
+      const rangeText = `${fmtDMYdot(dateFrom)} - ${fmtDMYdot(dateTo)}`.trim();
+      const linkText = rangeText || (dateStr || 'the selected period');
       const linkedPhrase = sheetUrl ? `<a href="${sheetUrl}" target="_blank" rel="noopener">${linkText}</a>` : linkText;
       const bodyTop = `<p style="margin:0 0 12px 0;">Hello Jesse,</p>` +
                       `<p style="margin:0 0 16px 0;">Here is the Google ${cadenceLabel} Report from ${linkedPhrase}.</p>`;
