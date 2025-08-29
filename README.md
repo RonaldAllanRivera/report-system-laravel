@@ -135,44 +135,35 @@ Roadmap (APIs & automation):
 
 ## Deployment
 
-### Render.com Setup
+### Render.com (via Blueprint)
 
-1. **Prerequisites**
-   - GitHub/GitLab account with repository access
-   - Render.com account (free tier available)
-   - Remote MySQL database (e.g., Hostinger)
+This project is configured for zero-touch deployment to Render using a `render.yaml` Blueprint. The Blueprint automatically provisions a Docker container to run the Laravel application.
 
-2. **Environment Variables**
-   Add these to your Render dashboard:
-   ```
-   APP_ENV=production
-   APP_DEBUG=false
-   APP_KEY=base64:your_app_key_here
-   APP_URL=https://your-app.onrender.com
-   
-   DB_CONNECTION=mysql
-   DB_HOST=your_mysql_host
-   DB_PORT=3306
-   DB_DATABASE=your_database
-   DB_USERNAME=your_username
-   DB_PASSWORD=your_password
-   
-   # Optional: For Google OAuth
-   GOOGLE_CLIENT_ID=
-   GOOGLE_CLIENT_SECRET=
-   GOOGLE_REDIRECT_URI=
-   ```
+1.  **Prerequisites**
+    *   A GitHub/GitLab/Bitbucket account with your repository.
+    *   A Render.com account.
+    *   A remote MySQL database (e.g., from Hostinger, Aiven, or Render's own PostgreSQL service).
 
-3. **Deploy from Git**
-   - Connect your Git repository to Render
-   - Select PHP as environment
-   - Set build command: `chmod +x deploy.sh && ./deploy.sh`
-   - Set start command: `php artisan serve --host=0.0.0.0 --port=$PORT`
-   - Set environment to production
+2.  **Deployment Steps**
+    1.  In the Render Dashboard, click **New +** and select **Blueprint**.
+    2.  Connect the Git repository for this project.
+    3.  Render will automatically detect and parse the `render.yaml` file. It will show a plan to create one "Web Service" using Docker.
+    4.  Click **Apply** to approve the plan.
 
-4. **Post-Deployment**
-   - Run migrations: `php artisan migrate --force`
-   - Clear cache: `php artisan optimize:clear`
+3.  **Environment Variables**
+
+    Before the first deployment, you **must** set the following secret environment variables in the Render dashboard for the service. The deployment will fail without them.
+
+    *   `DB_PASSWORD`: Your database password.
+    *   `GOOGLE_CLIENT_ID`: Your Google OAuth client ID.
+    *   `GOOGLE_CLIENT_SECRET`: Your Google OAuth client secret.
+
+    You should also generate a secure `APP_KEY` locally (`php artisan key:generate --show`) and set it in the dashboard. Other variables from `.env.example` are pre-filled in `render.yaml` but can be overridden in the dashboard.
+
+4.  **Post-Deployment**
+
+    *   The Docker container's entrypoint script (`docker/entrypoint.sh`) automatically handles key generation (if missing), config caching, and database migrations (`php artisan migrate --force`). No manual post-deployment SSH steps are needed.
+    *   Once deployed, update the `APP_URL` and `GOOGLE_REDIRECT_URI` environment variables in the Render dashboard to use your service's `*.onrender.com` URL.
 
 ## Installation
 1. **Clone the repo:**

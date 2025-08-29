@@ -14,6 +14,9 @@
 !/package-lock.json
 !/phpunit.xml
 !/render.yaml
+!/Dockerfile
+!/docker
+!/docker/**
 !/server.php
 !/vite.config.js
 !/webpack.mix.js

@@ -244,6 +244,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.0] - YYYY-MM-DD
+
+### Added
+- **Render.com Docker Deployment**
+  - Added `Dockerfile` to build a production-ready image with PHP 8.2, Apache, Node.js for asset building, and all required PHP extensions.
+  - Created `docker/entrypoint.sh` to automate database migrations, configuration caching, and application startup within the Render environment.
+  - Added `docker/000-default.conf` for Apache virtual host configuration.
+  - Updated `render.yaml` to use the `docker` runtime, simplifying deployment to a zero-touch Blueprint setup.
+  - Updated `.renderignore` to include Docker-related files in the build context.
+
+### Changed
+- Deployment process for Render now uses Docker, removing the previous reliance on a native PHP environment and manual build/start commands.
+
+### Removed
+- Obsolete `deploy.sh` script, as its functionality is now handled by the Docker entrypoint.
+
 ## [Unreleased]
 - [ ] Add report export functionality (CSV/XLSX) with P/L and ROI formulas
 

@@ -1,12 +1,8 @@
 services:
   - type: web
     name: report-system-laravel
-    env: php
+    runtime: docker
     region: oregon  # or your preferred region
-    buildCommand: |
-      chmod +x deploy.sh
-      ./deploy.sh
-    startCommand: "php artisan migrate --force || true; php -S 0.0.0.0:$PORT -t public/ public/index.php"
     plan: free
     # Environment variables
     envVars:
