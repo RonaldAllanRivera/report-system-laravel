@@ -5,6 +5,20 @@
 !/.git
 !/.github
 !/.gitignore
+!/.htaccess
+!/.styleci.yml
+!/artisan
+!/composer.json
+!/composer.lock
+!/package.json
+!/package-lock.json
+!/phpunit.xml
+!/render.yaml
+!/server.php
+!/vite.config.js
+!/webpack.mix.js
+
+# Allow app directories
 !/app
 !/bootstrap
 !/config
@@ -16,8 +30,67 @@
 !/tests
 !/vendor
 
-# Allow specific files
-!/artisan
+# Allow specific files in root
+!/*.md
+!/*.txt
+!/*.json
+!/*.js
+!/*.php
+
+# Allow all files in public directory
+!/public/**
+
+# Allow all files in storage/app/public (for file uploads)
+!/storage/app/public/**
+
+# Allow all files in resources/views
+!/resources/views/**
+
+# Allow all files in resources/js
+!/resources/js/**
+
+# Allow all files in resources/css
+!/resources/css/**
+
+# Allow all files in config
+!/config/**
+
+# Allow all files in database/migrations
+!/database/migrations/**
+
+# Allow all files in database/seeders
+!/database/seeders/**
+
+# Allow all files in routes
+!/routes/**
+
+# Allow all files in tests
+!/tests/**
+
+# Allow all files in app
+!/app/**
+
+# Allow all files in bootstrap/cache (except .gitignore)
+!/bootstrap/cache
+!/bootstrap/cache/*
+!bootstrap/cache/.gitignore
+
+# Allow all files in storage/framework (except .gitignore)
+!/storage/framework
+!/storage/framework/**
+!storage/framework/*/.gitignore
+
+# Allow all files in storage/logs (except .gitignore)
+!/storage/logs
+!storage/logs/.gitignore
+
+# Allow all files in storage/app (except .gitignore)
+!/storage/app
+!storage/app/.gitignore
+
+# Allow all files in storage/app/public (except .gitignore)
+!/storage/app/public
+!storage/app/public/.gitignore
 !/composer.json
 !/composer.lock
 !/package.json

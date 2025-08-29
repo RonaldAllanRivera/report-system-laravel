@@ -3,9 +3,20 @@ services:
     name: report-system-laravel
     env: php
     region: oregon  # or your preferred region
-    buildCommand: "chmod +x deploy.sh && ./deploy.sh"
-    startCommand: "php artisan serve --host=0.0.0.0 --port=\$PORT"
+    buildCommand: |
+      chmod +x deploy.sh
+      ./deploy.sh
+    startCommand: "php -S 0.0.0.0:\$PORT -t public/"
+    plan: free
+    # Environment variables
     envVars:
+      # Build environment
+      - key: NODE_VERSION
+        value: 18.x
+      - key: PHP_VERSION
+        value: 8.2
+      
+      # Application settings
       - key: APP_ENV
         value: production
       - key: APP_DEBUG
@@ -16,16 +27,68 @@ services:
         value: ""  # Will be same as APP_URL
       - key: LOG_CHANNEL
         value: stderr
+      - key: APP_LOCALE
+        value: en
+      - key: APP_FALLBACK_LOCALE
+        value: en
+      - key: APP_FAKER_LOCALE
+        value: en_US
+      - key: APP_MAINTENANCE_DRIVER
+        value: file
+      - key: BCRYPT_ROUNDS
+        value: "12"
+      
+      # Database configuration
       - key: DB_CONNECTION
         value: mysql
-      # Add these in Render dashboard after getting them from Hostinger
-      # - key: DB_HOST
-      #   value: your-db-host
-      # - key: DB_PORT
-      #   value: "3306"
-      # - key: DB_DATABASE
-      #   value: your-db-name
-      # - key: DB_USERNAME
+      - key: DB_HOST
+        value: 191.101.230.52
+      - key: DB_PORT
+        value: "3306"
+      - key: DB_DATABASE
+        value: u440604933_report_system
+      - key: DB_USERNAME
+        value: u440604933_report_system
+      - key: DB_PASSWORD
+        value: your-db-password  # Set this in Render dashboard
+      
+      # Session and cache
+      - key: SESSION_DRIVER
+        value: file
+      - key: SESSION_LIFETIME
+        value: "120"
+      - key: CACHE_DRIVER
+        value: file
+      - key: QUEUE_CONNECTION
+        value: sync
+      
+      # Mail configuration
+      - key: MAIL_MAILER
+        value: log
+      - key: MAIL_FROM_ADDRESS
+        value: allan@logicmedia.be
+      - key: MAIL_FROM_NAME
+        value: "${APP_NAME}"
+      
+      # Google OAuth
+      - key: GOOGLE_CLIENT_ID
+        value: your-google-client-id  # Set this in Render dashboard
+      - key: GOOGLE_CLIENT_SECRET
+        value: your-google-client-secret  # Set this in Render dashboard
+      - key: GOOGLE_REDIRECT_URI
+        value: https://your-render-app.onrender.com/google/callback  # Update this
+      - key: GOOGLE_APP_NAME
+        value: "Google Binom Reporter"
+      - key: GOOGLE_DRIVE_DAILY_PARENT_ID
+        value: 1mhB7XJ3C6B-lUTfkyrfVZqANJw_nNIf-
+      - key: GOOGLE_DRIVE_WEEKLY_PARENT_ID
+        value: 1UaBeVo0inMG0g7RmEV7baoVh7gt1gfvC
+      - key: GOOGLE_DRIVE_MONTHLY_PARENT_ID
+        value: 1Qw0ElZtqwAbVmU-OkYDo7QcYhtnSygcY
+      - key: GOOGLE_DRIVE_DEFAULT_PARENT_ID
+        value: 1mhB7XJ3C6B-lUTfkyrfVZqANJw_nNIf-
+      - key: GOOGLE_SCOPES
+        value: "https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/gmail.compose"
       #   value: your-db-user
       # - key: DB_PASSWORD
       #   value: your-db-password
@@ -38,6 +101,9 @@ services:
           value: 18.x
         - key: PHP_VERSION
           value: 8.2
+      buildpacks:
+        - https://github.com/heroku/heroku-buildpack-php
+        - heroku/nodejs
 
     envVars:
       - key: NODE_ENV
