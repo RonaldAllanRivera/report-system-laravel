@@ -1,3 +1,18 @@
+## [0.7.0] - 2025-08-29
+### Added
+- Render.com deployment configuration
+  - `render.yaml` for Render service configuration
+  - `deploy.sh` build script for production deployment
+  - Enhanced `.htaccess` with security headers, compression, and caching rules
+  - Updated `vite.config.js` for production asset handling
+  - Added `.renderignore` to exclude unnecessary files from deployment
+  - Updated `README.md` with Render deployment instructions
+
+### Changed
+- Optimized asset handling for production environment
+- Improved security headers and caching configuration
+- Updated dependencies for production build
+
 ## [0.6.6] - 2025-08-28
 ### Added
 - Google Binom Report: green "CREATE DRAFT" button creates a Gmail draft for the selected date range (weekly/monthly).

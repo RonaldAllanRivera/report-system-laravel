@@ -1,25 +1,56 @@
 /.phpunit.cache
 /node_modules
-/public/build
+/public# Laravel default ignores
 /public/hot
 /public/storage
+/public/build
 /storage/*.key
-/storage/pail
 /vendor
+
+# Environment files
 .env
-.env.backup
-.env.production
-.phpactor.json
+.env.*
+!.env.example
+
+# Logs
+*.log
+/storage/logs/*.log
+
+# Cache
+bootstrap/cache/*
+
+# Testing
+/coverage
+.phpunit.cache
 .phpunit.result.cache
+
+# IDEs and editors
+/.idea
+/.vscode
+/.fleet
+*.sublime-*
+*.code-workspace
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Local development
 Homestead.json
 Homestead.yaml
-npm-debug.log
-yarn-error.log
-/auth.json
-/.fleet
-/.idea
-/.nova
-/.vscode
-/.zed
-/storage/fonts/
+/.vagrant
+
+# Laravel 4 specific
+bootstrap/compiled.php
+app/storage/
+
+# Laravel 5 & Lumen specific with changed public path
+/public/storage
+/public/hot
+/public/build
 /public/fonts/*.ttf

@@ -133,6 +133,47 @@ Roadmap (APIs & automation):
 - [spatie/laravel-permission](https://spatie.be/docs/laravel-permission) (optional)
 - Google APIs PHP Client (`google/apiclient`)
 
+## Deployment
+
+### Render.com Setup
+
+1. **Prerequisites**
+   - GitHub/GitLab account with repository access
+   - Render.com account (free tier available)
+   - Remote MySQL database (e.g., Hostinger)
+
+2. **Environment Variables**
+   Add these to your Render dashboard:
+   ```
+   APP_ENV=production
+   APP_DEBUG=false
+   APP_KEY=base64:your_app_key_here
+   APP_URL=https://your-app.onrender.com
+   
+   DB_CONNECTION=mysql
+   DB_HOST=your_mysql_host
+   DB_PORT=3306
+   DB_DATABASE=your_database
+   DB_USERNAME=your_username
+   DB_PASSWORD=your_password
+   
+   # Optional: For Google OAuth
+   GOOGLE_CLIENT_ID=
+   GOOGLE_CLIENT_SECRET=
+   GOOGLE_REDIRECT_URI=
+   ```
+
+3. **Deploy from Git**
+   - Connect your Git repository to Render
+   - Select PHP as environment
+   - Set build command: `chmod +x deploy.sh && ./deploy.sh`
+   - Set start command: `php artisan serve --host=0.0.0.0 --port=$PORT`
+   - Set environment to production
+
+4. **Post-Deployment**
+   - Run migrations: `php artisan migrate --force`
+   - Clear cache: `php artisan optimize:clear`
+
 ## Installation
 1. **Clone the repo:**
    ```bash

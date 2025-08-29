@@ -8,6 +8,112 @@
 
 ---
 
+## **🚀 Deployment — Hostinger (/tools, no SSH)**
+
+This guide explains how to deploy the app to a Hostinger shared hosting subfolder: `https://allanwebdesign.com/tools`, without SSH.
+
+### 1) Layout on server
+- Upload the entire Laravel project into: `public_html/tools/`
+- Keep the standard structure: `tools/app`, `tools/public`, `tools/vendor`, `tools/storage`, …
+- You do NOT need to edit `public/index.php` when using the shim below.
+
+### 2) Add a small shim (in `public_html/tools/`)
+Create these two files alongside `app/`, `public/`, etc. so `/tools` routes to `public/`:
+
+- `public_html/tools/index.php`
+```php
+<?php
+require __DIR__ . '/public/index.php';
+```
+
+- `public_html/tools/.htaccess`
+```
+Options -MultiViews
+RewriteEngine On
+
+# Serve existing files/folders
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# Route everything else to public/index.php
+RewriteRule ^ public/index.php [L]
+```
+
+### 3) Prepare locally (Windows)
+- Install prod vendors:
+```powershell
+composer install --no-dev --optimize-autoloader
+```
+- Build front-end assets for subfolder `/tools` (already supported via `vite.config.js`):
+```powershell
+$env:VITE_BASE="/tools/"
+npm run build
+```
+- Create production env file:
+  - Duplicate `.env.example` → `.env.production`
+  - Set at minimum:
+    - `APP_ENV=production`
+    - `APP_DEBUG=false`
+    - `APP_URL=https://allanwebdesign.com/tools`
+    - `DB_*` (from hPanel)
+    - `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI=https://allanwebdesign.com/tools/google/callback`
+    - `GOOGLE_SCOPES="https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/gmail.compose"`
+- Generate APP_KEY into `.env.production`:
+  1) Temporarily rename `.env.production` → `.env`
+  2) `php artisan key:generate`
+  3) Rename back to `.env.production`
+
+### 4) Upload to Hostinger
+- Upload the entire project into `public_html/tools/` via File Manager or FTP.
+- Include: `vendor/`, `public/build/`, `storage/`, `bootstrap/`, `app/`, `config/`, `routes/`, etc.
+- Exclude: `node_modules/` (not required on server).
+- After upload, rename `.env.production` on the server to `.env`.
+
+### 5) Permissions
+- Ensure these are writable (755 or 775):
+  - `tools/storage`
+  - `tools/bootstrap/cache`
+
+### 6) Database and migrations (no SSH)
+- Create DB + user in hPanel.
+- Import schema/data via phpMyAdmin. Options:
+  - Recommended: Run migrations locally on an empty DB, then export and import into Hostinger.
+  - Alternative (advanced): Add a temporary admin-only route to trigger migrations, then remove it immediately.
+
+### 7) Google OAuth
+- In Google Cloud Console → OAuth Client, add redirect:
+  - `https://allanwebdesign.com/tools/google/callback`
+- First use: visit `/tools/google/auth` to consent; token is saved to `storage/app/private/google_oauth_token.json`.
+
+### 8) Optional: force HTTPS + correct root URL
+Add to `app/Providers/AppServiceProvider.php`:
+```php
+use Illuminate\Support\Facades\URL;
+
+public function boot(): void
+{
+    if (config('app.env') === 'production') {
+        URL::forceScheme('https');
+        URL::forceRootUrl(config('app.url')); // https://allanwebdesign.com/tools
+    }
+}
+```
+
+### 9) Test checklist
+- Open `https://allanwebdesign.com/tools`
+- Verify assets load (built with `VITE_BASE=/tools/`)
+- Access Admin: `/tools/admin`
+- Test Google features (Sheet/Draft) after OAuth consent
+
+### 10) Troubleshooting
+- 404 or broken CSS/JS: confirm `public/build` exists and `VITE_BASE=/tools/` was used for build
+- Wrong absolute URLs: check `APP_URL` and (optionally) `URL::forceRootUrl`
+- 500 errors: confirm `storage` and `bootstrap/cache` permissions
+- OAuth error: ensure redirect URI matches exactly `/tools/google/callback`
+
+---
+
 ### **1. Overview**
 
 The **Google Ads + Binom Report System** lets users upload CSV files from **Google Ads** and **Binom**.

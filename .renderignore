@@ -1,0 +1,85 @@
+# Ignore everything
+*
+
+# Allow these files and directories
+!/.git
+!/.github
+!/.gitignore
+!/app
+!/bootstrap
+!/config
+!/database
+!/public
+!/resources
+!/routes
+!/storage
+!/tests
+!/vendor
+
+# Allow specific files
+!/artisan
+!/composer.json
+!/composer.lock
+!/package.json
+!/package-lock.json
+!/phpunit.xml
+!/vite.config.js
+!/deploy.sh
+!/render.yaml
+
+# Ignore development files
+/.fleet
+/.idea
+/.vscode
+/.editorconfig
+/.styleci.yml
+/.php_cs
+/.php_cs.cache
+/.phpunit.result.cache
+/phpunit.xml
+/phpunit.xml.dist
+/phpcs.xml
+/phpmd.xml
+/.phpstorm.meta.php
+/.php_cs.dist
+/.php_cs.cache
+/.php_cs.dist.php
+
+# Ignore environment files (except .env.example)
+/.env
+/.env.backup
+/.env.production
+/.env.staging
+
+# Ignore local storage and logs
+/storage/*.key
+/storage/debugbar/*
+/storage/logs/*
+/storage/framework/cache/*
+/storage/framework/sessions/*
+/storage/framework/views/*
+
+# Ignore npm and build files
+/node_modules
+/public/build
+/public/hot
+/public/storage
+
+# Ignore development tools
+/npm-debug.log
+yarn-error.log
+
+# Ignore IDE specific files
+.idea
+.vscode
+*.sublime-*
+*.code-workspace
+
+# Ignore OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db

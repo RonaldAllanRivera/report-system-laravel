@@ -1,0 +1,58 @@
+services:
+  - type: web
+    name: report-system-laravel
+    env: php
+    region: oregon  # or your preferred region
+    buildCommand: "chmod +x deploy.sh && ./deploy.sh"
+    startCommand: "php artisan serve --host=0.0.0.0 --port=\$PORT"
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: "false"
+      - key: APP_URL
+        value: https://your-render-app.onrender.com  # Update this after deployment
+      - key: ASSET_URL
+        value: ""  # Will be same as APP_URL
+      - key: LOG_CHANNEL
+        value: stderr
+      - key: DB_CONNECTION
+        value: mysql
+      # Add these in Render dashboard after getting them from Hostinger
+      # - key: DB_HOST
+      #   value: your-db-host
+      # - key: DB_PORT
+      #   value: "3306"
+      # - key: DB_DATABASE
+      #   value: your-db-name
+      # - key: DB_USERNAME
+      #   value: your-db-user
+      # - key: DB_PASSWORD
+      #   value: your-db-password
+      # - key: APP_KEY
+      #   value: base64:your-app-key-here
+
+    build:
+      envVars:
+        - key: NODE_VERSION
+          value: 18.x
+        - key: PHP_VERSION
+          value: 8.2
+
+    envVars:
+      - key: NODE_ENV
+        value: production
+
+    healthCheckPath: /admin/login
+    autoDeploy: true
+    plan: free  # or 'starter' for paid plan
+
+# Uncomment if you need a database in the future
+# databases:
+#   - name: report-system-db
+#     databaseName: report_system
+#     user: report_user
+#     plan: free
+#     ipAllowList:
+#       - ip: 0.0.0.0/0
+#         description: Allow all IPs (restrict in production)
