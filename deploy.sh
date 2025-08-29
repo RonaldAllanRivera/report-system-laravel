@@ -1,115 +1,84 @@
-#!/bin/bash
-set -e
+#!/usr/bin/env bash
+set -Eeuo pipefail
 
-# Colors for output
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-RED='\033[0;31m'
-NC='\033[0m' # No Color
+# Colors (Render logs support plain text; keeping simple)
+log()        { echo "[INFO]  $(date +'%Y-%m-%d %H:%M:%S')  $*"; }
+log_warn()   { echo "[WARN]  $(date +'%Y-%m-%d %H:%M:%S')  $*"; }
+log_error()  { echo "[ERROR] $(date +'%Y-%m-%d %H:%M:%S')  $*" 1>&2; }
 
-# Logging function
-log() {
-    echo -e "${GREEN}[$(date +'%Y-%m-%d %H:%M:%S')]${NC} $1"
-}
-
-log_warning() {
-    echo -e "${YELLOW}[WARNING] $1${NC}"
-}
-
-log_error() {
-    echo -e "${RED}[ERROR] $1${NC}" >&2
-    exit 1
-}
-
-# Start deployment
 log "=== Starting Deployment ==="
 
-# Check for required commands
-check_command() {
-    if ! command -v $1 &> /dev/null; then
-        log_warning "$1 is not installed. Attempting to install..."
-        return 1
-    fi
-    return 0
-}
+# Ensure PHP exists
+if ! command -v php >/dev/null 2>&1; then
+  log_error "PHP is not installed or not in PATH"
+  exit 1
+fi
 
-# Install Composer if not exists
-if ! check_command composer; then
-    log "Installing Composer..."
-    EXPECTED_CHECKSUM="$(php -r 'copy("https://composer.github.io/installer.sig", "-");')"
+# Install Composer if missing
+if ! command -v composer >/dev/null 2>&1; then
+  log "Composer not found. Installing Composer..."
+  EXPECTED_CHECKSUM="$(php -r 'copy("https://composer.github.io/installer.sig", "-");')"
+  php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+  ACTUAL_CHECKSUM="$(php -r "echo hash_file('sha384', 'composer-setup.php');")"
+  if [ "$EXPECTED_CHECKSUM" != "$ACTUAL_CHECKSUM" ]; then
+    log_error "Invalid Composer installer checksum"
+    rm -f composer-setup.php
+    exit 1
+  fi
+  php composer-setup.php --install-dir=/usr/local/bin --filename=composer >/dev/null
+  rm -f composer-setup.php
+  if ! command -v composer >/dev/null 2>&1; then
+    log_warn "Global Composer install failed; falling back to local composer.phar"
     php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
-    ACTUAL_CHECKSUM="$(php -r "echo hash_file('sha384', 'composer-setup.php');")"
-    
-    if [ "$EXPECTED_CHECKSUM" != "$ACTUAL_CHECKSUM" ]; then
-        log_error 'ERROR: Invalid installer checksum'
-        rm composer-setup.php
-        exit 1
+    php composer-setup.php --install-dir=. --filename=composer.phar >/dev/null || true
+    rm -f composer-setup.php
+    if [ -f ./composer.phar ]; then
+      COMPOSER="php ./composer.phar"
+    else
+      log_error "Composer installation failed"
+      exit 1
     fi
-    
-    php composer-setup.php --install-dir=/usr/local/bin --filename=composer
-    RESULT=$?
-    rm composer-setup.php
-    
-    if [ $RESULT -ne 0 ]; then
-        log_error 'Failed to install Composer'
-    fi
-    
-    log "Composer installed successfully"
+  else
+    COMPOSER="composer"
+  fi
+else
+  COMPOSER="composer"
 fi
 
-# Install PHP dependencies
+# PHP dependencies
 log "Installing PHP dependencies..."
-composer install --no-dev --optimize-autoloader --no-interaction --no-progress
+$COMPOSER install --no-dev --optimize-autoloader --no-interaction --no-progress
 
-# Generate application key if not exists
-if [ ! -f ".env" ]; then
-    log_warning ".env file not found. Copying from .env.example..."
-    cp .env.example .env
+# .env handling
+if [ ! -f .env ]; then
+  log_warn ".env not found. Copying from .env.example..."
+  cp .env.example .env
 fi
 
-if [ -z "$(grep 'APP_KEY=base64:' .env 2>/dev/null)" ]; then
-    log "Generating application key..."
-    php artisan key:generate --force
+if ! grep -q "^APP_KEY=base64:" .env 2>/dev/null; then
+  log "Generating application key..."
+  php artisan key:generate --force || log_warn "Failed to generate APP_KEY"
 fi
 
-# Optimize application
-log "Optimizing application..."
-php artisan config:cache
-php artisan route:cache
-php artisan view:cache
+# Optimize
+log "Optimizing application (config/route/view cache)..."
+php artisan config:cache || true
+php artisan route:cache || true
+php artisan view:cache || true
 
-# Install Node.js and npm if not exists
-if ! check_command node || ! check_command npm; then
-    log "Installing Node.js..."
-    curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
-    apt-get install -y nodejs || {
-        log_error 'Failed to install Node.js'
-    }
-    log "Node.js installed successfully"
+# Frontend build (optional)
+if command -v node >/dev/null 2>&1 && command -v npm >/dev/null 2>&1; then
+  log "Installing Node dependencies..."
+  (npm ci --prefer-offline --no-audit --progress=false || npm install --no-audit --progress=false) || log_warn "Node dependency install failed"
+  log "Building assets..."
+  npm run build --if-present || log_warn "Asset build failed"
+else
+  log_warn "Node.js or npm not found. Skipping frontend build."
 fi
 
-# Install Node.js dependencies
-log "Installing Node.js dependencies..."
-npm ci --prefer-offline --no-audit --progress=false
-
-# Build assets
-log "Building assets..."
-npm run build --if-present
-
-# Set correct permissions
-log "Setting permissions..."
-chmod -R 755 storage bootstrap/cache
-chmod -R 775 storage/logs
-chmod -R 775 storage/framework/sessions
-
-# Create storage symlink if it doesn't exist
-if [ ! -L "public/storage" ]; then
-    log "Creating storage symlink..."
-    php artisan storage:link
-fi
-
-# Run database migrations if needed
-# log "Running migrations..."
-# php artisan migrate --force
+# Permissions and storage link
+log "Setting permissions and storage symlink..."
+chmod -R ug+rwX storage bootstrap/cache || true
+php artisan storage:link || log_warn "storage:link failed (may already exist)"
 
 log "=== Deployment completed successfully ==="
