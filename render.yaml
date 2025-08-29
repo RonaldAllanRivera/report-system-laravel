@@ -22,7 +22,7 @@ services:
       - key: APP_DEBUG
         value: "false"
       - key: APP_URL
-        value: https://your-render-app.onrender.com  # Update this after deployment
+        value: https://report-system-laravel.onrender.com/  # Update this after deployment
       - key: ASSET_URL
         value: ""  # Will be same as APP_URL
       - key: LOG_CHANNEL
