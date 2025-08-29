@@ -7,8 +7,9 @@ err() { echo "[ERROR] $(date +'%Y-%m-%d %H:%M:%S')  $*" 1>&2; }
 
 cd /var/www/html
 
-# Ensure storage and cache are writable
-chmod -R ug+rwX storage bootstrap/cache || true
+# Ensure storage and cache are writable by the web server
+chown -R www-data:www-data storage bootstrap/cache || warn "chown failed; continuing..."
+chmod -R ug+rwX storage bootstrap/cache || warn "chmod failed; continuing..."
 
 # Ensure .env exists
 if [ ! -f .env ]; then

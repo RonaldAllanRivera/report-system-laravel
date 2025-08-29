@@ -260,6 +260,7 @@ All notable changes to this project will be documented in this file.
 ### Fixed
 - **Docker Build Failure**: Added `libicu-dev` and the `intl` PHP extension to the `Dockerfile` to resolve a composer dependency error for `filament/support`.
 - **Docker Build Failure**: Added `libzip-dev` and the `zip` PHP extension to the `Dockerfile` to resolve a composer dependency error for `openspout/openspout`.
+- **Runtime Permissions**: Fixed file permission errors for `storage` and `bootstrap/cache` directories by setting the correct owner in the Docker entrypoint script.
 
 ### Removed
 - Obsolete `deploy.sh` script, as its functionality is now handled by the Docker entrypoint.
