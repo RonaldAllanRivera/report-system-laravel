@@ -11,16 +11,13 @@ cd /var/www/html
 chown -R www-data:www-data storage bootstrap/cache || warn "chown failed; continuing..."
 chmod -R ug+rwX storage bootstrap/cache || warn "chmod failed; continuing..."
 
-# Ensure .env exists
-if [ ! -f .env ]; then
-  warn ".env not found; copying from .env.example"
-  cp .env.example .env || true
-fi
-
-# Generate app key if needed
-if ! grep -q '^APP_KEY=base64:' .env 2>/dev/null; then
-  log "Generating APP_KEY"
-  php artisan key:generate --force || warn "APP_KEY generation failed"
+# Generate app key if it's not set in the environment
+if [ -z "${APP_KEY:-}" ]; then
+    log "Generating APP_KEY"
+    # This will generate a key and add it to the .env file if it exists,
+    # but since we don't have one, it won't persist, which is fine.
+    # The primary goal is to have a key for the cache commands.
+    php artisan key:generate --force
 fi
 
 # Clear caches before startup

@@ -266,6 +266,7 @@ All notable changes to this project will be documented in this file.
 - **Mixed Content**: Resolved mixed content errors on HTTPS pages by configuring the `TrustProxies` middleware to correctly handle URLs behind a reverse proxy.
 - **Server Error**: Made the Docker entrypoint script more robust by clearing all application caches before startup to prevent stale configuration issues.
 - **Configuration Resilience**: Added a safeguard to `config/cache.php` to prevent fatal errors if the `CACHE_STORE` environment variable is empty, defaulting to the `file` driver.
+- **Deployment**: The Docker entrypoint script no longer creates a `.env` file, ensuring the application relies exclusively on environment variables provided by the Render dashboard.
 
 ### Removed
 - Obsolete `deploy.sh` script, as its functionality is now handled by the Docker entrypoint.
