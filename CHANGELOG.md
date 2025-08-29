@@ -255,6 +255,7 @@ All notable changes to this project will be documented in this file.
   - Updated `.renderignore` to include Docker-related files in the build context.
 
 ### Changed
+- **Architecture**: Switched session, cache, and queue drivers to use the `database` driver in production. This provides data persistence across deployments and improves reliability and scalability on Render's ephemeral filesystem.
 - Deployment process for Render now uses Docker, removing the previous reliance on a native PHP environment and manual build/start commands.
 
 ### Fixed
@@ -264,6 +265,7 @@ All notable changes to this project will be documented in this file.
 - **Deployment Timeout**: Corrected the command order in the Docker entrypoint to run database migrations before caching the configuration, resolving a port timeout issue on Render.
 - **Mixed Content**: Resolved mixed content errors on HTTPS pages by configuring the `TrustProxies` middleware to correctly handle URLs behind a reverse proxy.
 - **Server Error**: Made the Docker entrypoint script more robust by clearing all application caches before startup to prevent stale configuration issues.
+- **Configuration Resilience**: Added a safeguard to `config/cache.php` to prevent fatal errors if the `CACHE_STORE` environment variable is empty, defaulting to the `file` driver.
 
 ### Removed
 - Obsolete `deploy.sh` script, as its functionality is now handled by the Docker entrypoint.
