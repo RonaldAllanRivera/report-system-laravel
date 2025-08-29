@@ -263,6 +263,7 @@ All notable changes to this project will be documented in this file.
 - **Runtime Permissions**: Fixed file permission errors for `storage` and `bootstrap/cache` directories by setting the correct owner in the Docker entrypoint script.
 - **Deployment Timeout**: Corrected the command order in the Docker entrypoint to run database migrations before caching the configuration, resolving a port timeout issue on Render.
 - **Mixed Content**: Resolved mixed content errors on HTTPS pages by configuring the `TrustProxies` middleware to correctly handle URLs behind a reverse proxy.
+- **Server Error**: Made the Docker entrypoint script more robust by clearing all application caches before startup to prevent stale configuration issues.
 
 ### Removed
 - Obsolete `deploy.sh` script, as its functionality is now handled by the Docker entrypoint.
