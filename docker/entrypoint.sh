@@ -23,7 +23,11 @@ if ! grep -q '^APP_KEY=base64:' .env 2>/dev/null; then
   php artisan key:generate --force || warn "APP_KEY generation failed"
 fi
 
-# Cache config/routes/views (best-effort)
+# Run migrations first to ensure DB is ready (best-effort)
+log "Running migrations"
+php artisan migrate --force || warn "Migrations failed; continuing to start Apache"
+
+# Cache config/routes/views now that the app is configured (best-effort)
 log "Caching Laravel config/routes/views"
 php artisan config:cache || true
 php artisan route:cache || true
@@ -31,10 +35,6 @@ php artisan view:cache || true
 
 # Storage link (best-effort)
 php artisan storage:link || true
-
-# Run migrations (best-effort for zero-downtime start)
-log "Running migrations"
-php artisan migrate --force || warn "Migrations failed; continuing to start Apache"
 
 ## Ensure Apache binds to Render's PORT
 PORT_ENV="${PORT:-10000}"
