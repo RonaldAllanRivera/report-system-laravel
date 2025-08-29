@@ -14,9 +14,10 @@ if ! command -v php >/dev/null 2>&1; then
   exit 1
 fi
 
-# Install Composer if missing
-if ! command -v composer >/dev/null 2>&1; then
-  log "Composer not found. Installing Composer..."
+# Always use a local Composer (composer.phar) to avoid PATH issues
+COMPOSER="php ./composer.phar"
+if [ ! -f ./composer.phar ]; then
+  log "Composer (local) not found. Installing composer.phar..."
   EXPECTED_CHECKSUM="$(php -r 'copy("https://composer.github.io/installer.sig", "-");')"
   php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
   ACTUAL_CHECKSUM="$(php -r "echo hash_file('sha384', 'composer-setup.php');")"
@@ -25,25 +26,14 @@ if ! command -v composer >/dev/null 2>&1; then
     rm -f composer-setup.php
     exit 1
   fi
-  php composer-setup.php --install-dir=/usr/local/bin --filename=composer >/dev/null
+  php composer-setup.php --install-dir=. --filename=composer.phar >/dev/null
   rm -f composer-setup.php
-  if ! command -v composer >/dev/null 2>&1; then
-    log_warn "Global Composer install failed; falling back to local composer.phar"
-    php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
-    php composer-setup.php --install-dir=. --filename=composer.phar >/dev/null || true
-    rm -f composer-setup.php
-    if [ -f ./composer.phar ]; then
-      COMPOSER="php ./composer.phar"
-    else
-      log_error "Composer installation failed"
-      exit 1
-    fi
-  else
-    COMPOSER="composer"
-  fi
-else
-  COMPOSER="composer"
 fi
+if [ ! -f ./composer.phar ]; then
+  log_error "composer.phar missing after install attempt"
+  exit 1
+fi
+log "Using Composer binary: $COMPOSER"
 
 # PHP dependencies
 log "Installing PHP dependencies..."
