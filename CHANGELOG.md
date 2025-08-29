@@ -257,6 +257,9 @@ All notable changes to this project will be documented in this file.
 ### Changed
 - Deployment process for Render now uses Docker, removing the previous reliance on a native PHP environment and manual build/start commands.
 
+### Fixed
+- **Docker Build Failure**: Added `libicu-dev` and the `intl` PHP extension to the `Dockerfile` to resolve a composer dependency error for `filament/support`.
+
 ### Removed
 - Obsolete `deploy.sh` script, as its functionality is now handled by the Docker entrypoint.
 
