@@ -262,6 +262,7 @@ All notable changes to this project will be documented in this file.
 - **Docker Build Failure**: Added `libzip-dev` and the `zip` PHP extension to the `Dockerfile` to resolve a composer dependency error for `openspout/openspout`.
 - **Runtime Permissions**: Fixed file permission errors for `storage` and `bootstrap/cache` directories by setting the correct owner in the Docker entrypoint script.
 - **Deployment Timeout**: Corrected the command order in the Docker entrypoint to run database migrations before caching the configuration, resolving a port timeout issue on Render.
+- **Mixed Content**: Resolved mixed content errors on HTTPS pages by configuring the `TrustProxies` middleware to correctly handle URLs behind a reverse proxy.
 
 ### Removed
 - Obsolete `deploy.sh` script, as its functionality is now handled by the Docker entrypoint.
