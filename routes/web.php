@@ -4,9 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\GoogleSheetsController;
 use App\Http\Controllers\InvoiceController;
 
-Route::get('/', function () {
-    return view('welcome');
-});
+Route::redirect('/', '/admin/login');
 
 // Google OAuth + Sheets routes
 Route::get('/google/auth', [GoogleSheetsController::class, 'auth'])->name('google.auth');

@@ -266,13 +266,13 @@ All notable changes to this project will be documented in this file.
 - **Mixed Content**: Resolved mixed content errors on HTTPS pages by configuring the `TrustProxies` middleware to correctly handle URLs behind a reverse proxy.
 - **Server Error**: Made the Docker entrypoint script more robust by clearing all application caches before startup to prevent stale configuration issues.
 - **Configuration Resilience**: Added a safeguard to `config/cache.php` to prevent fatal errors if the `CACHE_STORE` environment variable is empty, defaulting to the `file` driver.
+- **403 Forbidden Error**: Resolved persistent login errors by implementing an explicit trusted proxy configuration in `bootstrap/app.php`, ensuring compatibility with Render's reverse proxy.
 - **Deployment**: The Docker entrypoint script no longer creates a `.env` file, ensuring the application relies exclusively on environment variables provided by the Render dashboard.
-- **403 Forbidden Error**: Resolved login errors by ensuring the `APP_URL` environment variable exactly matches the production URL, which is required for Laravel's CSRF protection.
 
 ### Removed
 - Obsolete `deploy.sh` script, as its functionality is now handled by the Docker entrypoint.
 
-## [Unreleased]
+{{ ... }}
 - [ ] Add report export functionality (CSV/XLSX) with P/L and ROI formulas
 
 
