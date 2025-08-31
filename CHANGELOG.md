@@ -1,3 +1,14 @@
+## [0.7.1] - 2025-08-31
+### Fixed
+- Filament Admin 403 at `/admin` in production by implementing `FilamentUser` on `app/Models/User.php` and allowing panel access via `canAccessPanel()`.
+- Mixed-content on HTTPS pages: enforce HTTPS scheme in production via `URL::forceScheme('https')` (scoped to production).
+
+### Docs
+- README: Added Production (Render) checklist and a Troubleshooting 403 section.
+- README: Clarified that HTTPS forcing is production-only; local Laragon remains HTTP.
+
+---
+
 ## [0.7.0] - 2025-08-29
 ### Added
 - Render.com deployment configuration

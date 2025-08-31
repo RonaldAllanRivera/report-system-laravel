@@ -165,6 +165,20 @@ This project is configured for zero-touch deployment to Render using a `render.y
     *   The Docker container's entrypoint script (`docker/entrypoint.sh`) automatically handles key generation (if missing), config caching, and database migrations (`php artisan migrate --force`). No manual post-deployment SSH steps are needed.
     *   Once deployed, update the `APP_URL` and `GOOGLE_REDIRECT_URI` environment variables in the Render dashboard to use your service's `*.onrender.com` URL.
 
+### Production (Render) checklist
+- **APP_URL** set to your HTTPS domain, e.g. `https://report-system-laravel.onrender.com` (no trailing slash).
+- **ASSET_URL** not set (recommended). If you set it, use the same HTTPS base as `APP_URL`.
+- **SESSION_SECURE_COOKIE=true** in production. Keep it `false` locally.
+- **HTTPS enforcement**: `URL::forceScheme('https')` is enabled only in production in `app/Providers/AppServiceProvider.php` to avoid mixed-content.
+- **Trusted proxies**: configured in `bootstrap/app.php` so `X-Forwarded-Proto`/host are respected on Render.
+- **APP_KEY** present and database credentials set. Migrations run automatically on deploy via `docker/entrypoint.sh`.
+
+### Troubleshooting: 403 Forbidden at `/admin`
+- Ensure `app/Models/User.php` implements `Filament\Models\Contracts\FilamentUser` and allows access via:
+  - `public function canAccessPanel(Filament\Panel $panel): bool { return true; }`
+- Redeploy after code changes (config/routes cache is rebuilt on container start).
+- Verify a user exists in the production `users` table. Passwords must be bcrypt-hashed. Then log in at `/admin/login`.
+
 ## Installation
 1. **Clone the repo:**
    ```bash
@@ -225,6 +239,49 @@ This project is configured for zero-touch deployment to Render using a `render.y
    php artisan filament:install
    php artisan migrate
    ```
+
+### Laragon (Windows) local setup
+- __Location__: place the project at `C:\laragon\www\report-system-laravel\`
+- __Auto virtual hosts__: Laragon → Preferences → General → enable "Auto virtual hosts" → Save → Reload. Access at `http://report-system-laravel.test`.
+- __Local .env__ (copy `.env.example` → `.env`, then adjust minimally):
+
+```ini
+APP_ENV=local
+APP_DEBUG=true
+APP_URL=http://report-system-laravel.test
+
+# Choose ONE database
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=report_system_local
+DB_USERNAME=root
+DB_PASSWORD=
+
+# Or use SQLite (no MySQL setup)
+# DB_CONNECTION=sqlite
+# DB_DATABASE=database/database.sqlite
+# (Create an empty file at database/database.sqlite)
+
+CACHE_STORE=file
+QUEUE_CONNECTION=sync
+SESSION_DRIVER=file
+SESSION_SECURE_COOKIE=false
+SESSION_DOMAIN=
+```
+
+- __First run__ (once): install dependencies and run migrations
+
+```bash
+composer install
+php artisan migrate
+```
+
+- __Daily usage__: Start Laragon (Apache/MySQL) and open `http://report-system-laravel.test/admin/login`.
+
+Notes:
+- Local `.env` is gitignored and won’t affect Docker/Render.
+- HTTPS is forced only in `production`; local stays on HTTP.
 
 ### PDF Invoices (DomPDF) — Windows font setup
  The app embeds Arial for invoice PDFs. On Windows, copy the system fonts into `public/fonts/`:
