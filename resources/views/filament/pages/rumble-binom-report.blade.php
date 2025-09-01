@@ -613,7 +613,40 @@
             const sheetUrl = await RB_createSheetSilently(table, dateStr, cadence, dateTo);
 
             // Compose final HTML like the approved layout
-            const linkText = (cadence === 'daily') ? 'yesterday' : (dateStr || 'the selected period');
+            // Build dynamic date text: for daily, use 'yesterday' only if dateTo is exactly yesterday; else show d/m/Y.
+            // For weekly/monthly, show a range d/m/Y - d/m/Y when dateFrom is provided; otherwise use dateStr or dateTo (d/m/Y).
+            const parseLocalYMD = (s) => {
+                if (typeof s !== 'string') return null;
+                const m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+                if (!m) return null;
+                return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+            };
+            const toLocalDate = (v) => {
+                if (!v) return null;
+                if (v instanceof Date) return new Date(v.getFullYear(), v.getMonth(), v.getDate());
+                const d = parseLocalYMD(v);
+                return d ? new Date(d.getFullYear(), d.getMonth(), d.getDate()) : null;
+            };
+            const fmtDMY = (d) => {
+                if (!(d instanceof Date)) return '';
+                const dd = String(d.getDate()).padStart(2, '0');
+                const mm = String(d.getMonth() + 1).padStart(2, '0');
+                const yyyy = d.getFullYear();
+                return `${dd}/${mm}/${yyyy}`;
+            };
+            const dtTo = toLocalDate(dateTo);
+            const today = new Date();
+            const yest = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1);
+            let linkText = '';
+            if (cadence === 'daily') {
+                const isYest = dtTo && dtTo.getFullYear() === yest.getFullYear() && dtTo.getMonth() === yest.getMonth() && dtTo.getDate() === yest.getDate();
+                linkText = isYest ? 'yesterday' : (dtTo ? fmtDMY(dtTo) : (dateStr || 'the selected period'));
+            } else {
+                const dtFrom = toLocalDate(dateFrom);
+                if (dtFrom && dtTo) linkText = `${fmtDMY(dtFrom)} - ${fmtDMY(dtTo)}`;
+                else if (dateStr) linkText = dateStr;
+                else linkText = dtTo ? fmtDMY(dtTo) : 'the selected period';
+            }
             const linkedPhrase = sheetUrl ? `<a href="${sheetUrl}" target="_blank" rel="noopener">${linkText}</a>` : linkText;
             const cadenceLabel = (cadence === 'daily') ? 'Daily' : (cadence ? cadence.charAt(0).toUpperCase() + cadence.slice(1) : 'Daily');
             const bodyTop = `<p style="margin:0 0 12px 0;">Hello Jesse,</p>` +

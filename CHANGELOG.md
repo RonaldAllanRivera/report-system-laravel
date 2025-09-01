@@ -2,10 +2,12 @@
 ### Fixed
 - Filament Admin 403 at `/admin` in production by implementing `FilamentUser` on `app/Models/User.php` and allowing panel access via `canAccessPanel()`.
 - Mixed-content on HTTPS pages: enforce HTTPS scheme in production via `URL::forceScheme('https')` (scoped to production).
+ - Rumble Daily Report Gmail draft: dynamic date phrase now shows "yesterday" only when `date_to` is exactly yesterday; otherwise shows `dd/mm/YYYY`. Weekly/Monthly use a date range when `date_from` is provided, else fall back to the provided `date_str` or `date_to` formatted as `dd/mm/YYYY`. Applied consistently to both HTML and plain-text bodies; backend honors `is_full_body` when the full HTML is supplied by the frontend.
 
 ### Docs
 - README: Added Production (Render) checklist and a Troubleshooting 403 section.
 - README: Clarified that HTTPS forcing is production-only; local Laragon remains HTTP.
+ - README/CHANGELOG: Clarified the dynamic date phrase behavior for the Rumble Gmail draft and noted Render.com verification steps.
 
 ---
 

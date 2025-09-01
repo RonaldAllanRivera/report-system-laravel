@@ -373,7 +373,10 @@ Notes:
 - Each section has a green "CREATE DRAFT" button that creates a Gmail draft for the current date range.
 - Email body (built on the frontend and sent as full HTML):
   - Greeting: "Hello Jesse," and closing: "Thanks, Allan".
-  - Intro: "Here is the Rumble <Cadence> Report from <yesterday/period>" with the phrase linked to the created Google Sheet when available.
+  - Intro: "Here is the Rumble <Cadence> Report from <period>" with the phrase linked to the created Google Sheet when available. The `<period>` is computed as:
+    - Daily: shows "yesterday" only if `date_to` is exactly yesterday; otherwise shows `dd/mm/YYYY`.
+    - Weekly/Monthly: shows `dd/mm/YYYY - dd/mm/YYYY` when `date_from` is provided; otherwise falls back to the provided `date_str` or `date_to` formatted as `dd/mm/YYYY`.
+    - The plain-text alternative part of the email uses the same phrase.
   - Table: final computed values only (no formulas); visible borders and padding for readability; conditional background colors for P/L and ROI (green when > 0, red when < 0).
 - Backend respects a flag to use the provided full HTML body as-is to avoid duplicate prefaces.
 - OAuth flow matches Create Sheet:

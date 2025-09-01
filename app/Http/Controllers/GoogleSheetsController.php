@@ -90,8 +90,18 @@ class GoogleSheetsController extends Controller
                 $textBody = trim(strip_tags($htmlInput));
             } else {
                 // Greeting/body preface with dynamic date text and link
-                $daysDiff = Carbon::today()->diffInDays($dateTo);
-                $datePhrase = ($cadence === 'daily' && $daysDiff <= 2) ? 'yesterday' : $dateTo->format('F j, Y');
+                $fmt = 'd/m/Y';
+                if ($cadence === 'daily') {
+                    $datePhrase = $dateTo->isYesterday() ? 'yesterday' : $dateTo->format($fmt);
+                } else {
+                    if ($dateFrom) {
+                        $datePhrase = $dateFrom->format($fmt) . ' - ' . $dateTo->format($fmt);
+                    } elseif ($dateStr) {
+                        $datePhrase = $dateStr;
+                    } else {
+                        $datePhrase = $dateTo->format($fmt);
+                    }
+                }
                 $linkedDatePhrase = $sheetUrl ? ('<a href="' . e($sheetUrl) . '" target="_blank" rel="noopener">' . e($datePhrase) . '</a>') : e($datePhrase);
                 $preface = '<p style="margin:0 0 12px 0; font-family:Arial,Helvetica,sans-serif; font-size:14px; color:#334155;">'
                     . 'Here is the Rumble ' . e($cadence) . ' report for ' . $linkedDatePhrase . '.</p>';
@@ -105,7 +115,18 @@ class GoogleSheetsController extends Controller
                     . '</body></html>';
 
                 // Text fallback (strip tags)
-                $textBody = 'Rumble ' . $cadence . ' report for ' . strip_tags($datePhrase) . ($sheetUrl ? ("\n" . $sheetUrl) : '') . "\n\n" . strip_tags($htmlInput);
+                if ($cadence === 'daily') {
+                    $textDatePhrase = $dateTo->isYesterday() ? 'yesterday' : $dateTo->format($fmt);
+                } else {
+                    if ($dateFrom) {
+                        $textDatePhrase = $dateFrom->format($fmt) . ' - ' . $dateTo->format($fmt);
+                    } elseif ($dateStr) {
+                        $textDatePhrase = $dateStr;
+                    } else {
+                        $textDatePhrase = $dateTo->format($fmt);
+                    }
+                }
+                $textBody = 'Rumble ' . $cadence . ' report for ' . $textDatePhrase . ($sheetUrl ? ("\n" . $sheetUrl) : '') . "\n\n" . strip_tags($htmlInput);
             }
 
             // Recipients
