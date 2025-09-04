@@ -1,3 +1,10 @@
+## [0.7.2] - 2025-09-04
+### Changed
+- Invoice Tool: Date field is now selectable (defaults to today) on the Filament Invoice page. Invoice creation uses the selected date for persistence and PDF rendering. The PDF date format remains `d/m/Y` (e.g., `28/08/2025`). Invoice numbering continues to sequence by the current year.
+
+### Docs
+- README: Updated Invoice Tool section to state the Date is selectable (defaults to today) instead of disabled.
+
 ## [0.7.1] - 2025-08-31
 ### Fixed
 - Filament Admin 403 at `/admin` in production by implementing `FilamentUser` on `app/Models/User.php` and allowing panel access via `canAccessPanel()`.

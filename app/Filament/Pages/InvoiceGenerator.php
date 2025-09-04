@@ -120,8 +120,7 @@ class InvoiceGenerator extends Page implements HasForms
                         DatePicker::make('invoice_date')
                             ->native(false)
                             ->label('Date')
-                            ->required()
-                            ->disabled(),
+                            ->required(),
                         TextInput::make('invoice_number')->label('Invoice #')->disabled(),
                         Textarea::make('notes')->label('Notes')->rows(3)->columnSpan(3),
                         TextInput::make('payment_link')
@@ -249,9 +248,11 @@ class InvoiceGenerator extends Page implements HasForms
     {
         $data = $this->form->getState();
 
-        // Always use today's date and compute the next unique invoice number for the year
-        $date = Carbon::today();
-        $invoiceNumber = $this->nextInvoiceNumberForYear($date->year);
+        // Use selected invoice date if provided; default to today
+        $dateInput = (string) ($data['invoice_date'] ?? '');
+        $date = $dateInput ? Carbon::parse($dateInput) : Carbon::today();
+        // Keep invoice number sequencing based on current year
+        $invoiceNumber = $this->nextInvoiceNumberForYear(Carbon::today()->year);
 
         $items = (array) ($data['items'] ?? []);
         $total = 0;
@@ -420,9 +421,11 @@ class InvoiceGenerator extends Page implements HasForms
     {
         $data = $this->form->getState();
 
-        // Always use today's date and compute the next unique invoice number for the year
-        $date = Carbon::today();
-        $invoiceNumber = $this->nextInvoiceNumberForYear($date->year);
+        // Use selected invoice date if provided; default to today
+        $dateInput = (string) ($data['invoice_date'] ?? '');
+        $date = $dateInput ? Carbon::parse($dateInput) : Carbon::today();
+        // Keep invoice number sequencing based on current year
+        $invoiceNumber = $this->nextInvoiceNumberForYear(Carbon::today()->year);
 
         $items = (array) ($data['items'] ?? []);
         $total = 0;

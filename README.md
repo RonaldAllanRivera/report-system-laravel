@@ -115,9 +115,9 @@ Roadmap (APIs & automation):
   - Clean HTML tables for grouped views (dark mode supported)
   - Color-coded badges for report types
 
- - **Invoice Tool (Filament Page)**
+  - **Invoice Tool (Filament Page)**
    - Navigate: Tools → Invoice
-   - Form: Name, Bill To, Date (today, disabled), Invoice # (auto `YYYY-NNN`), Notes
+   - Form: Name, Bill To, Date (selectable; defaults to today), Invoice # (auto `YYYY‑NNN`), Notes
    - Line Items: item, quantity, rate; amount and total auto-calculated
    - Action: Download PDF (saves invoice + items, then downloads)
    - Action: Create Gmail Draft (attaches the generated invoice PDF)
