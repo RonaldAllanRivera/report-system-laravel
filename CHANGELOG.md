@@ -1,3 +1,17 @@
+## [0.7.3] - 2025-09-04
+### Added
+- Filament admin resource: "All Invoices" under Tools with full CRUD for invoices (List, Create, View, Edit, Delete).
+- Items Relation Manager to manage invoice line items with live amount calculation (quantity × rate) and auto-recomputed invoice `total` after create/update/delete (including bulk delete).
+- Table/View actions include "Download PDF" linking to existing `invoices.download` route.
+- Invoice form defaults: `invoice_date` selectable (defaults to today), `invoice_number` defaults to next `YYYY-NNN` for current year; uniqueness enforced.
+
+### Fixed
+- Updated Filament v3 type hints in ItemsRelationManager to use `Filament\\Forms\\Form` and `Filament\\Tables\\Table` (resolves "class Filament\\Resources\\Form is not available").
+- Adjusted `TextInput::unique` to v3 signature in `InvoiceResource` (`->unique(ignoreRecord: true)`).
+
+### Docs
+- README: Documented the new "All Invoices" resource, navigation, and behavior.
+
 ## [0.7.2] - 2025-09-04
 ### Changed
 - Invoice Tool: Date field is now selectable (defaults to today) on the Filament Invoice page. Invoice creation uses the selected date for persistence and PDF rendering. The PDF date format remains `d/m/Y` (e.g., `28/08/2025`). Invoice numbering continues to sequence by the current year.

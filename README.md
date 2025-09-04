@@ -123,6 +123,15 @@ Roadmap (APIs & automation):
    - Action: Create Gmail Draft (attaches the generated invoice PDF)
    - PDF: embedded Arial; filename `Allan - {invoice_number}.pdf`
 
+  - **All Invoices (Filament Resource)**
+   - Navigate: Tools → All Invoices
+   - Purpose: Manage all invoices stored in the database with full CRUD
+   - List view: searchable columns for Invoice #, Date, Name, and formatted Total
+   - Actions: View, Edit, Delete, and Download PDF (opens existing `invoices.download` route)
+   - Create/Edit/View: manage invoice fields; `invoice_date` defaults to today and is selectable; `invoice_number` defaults to next `YYYY-NNN` for the current year and is unique
+   - Items Relation Manager: add/edit/delete line items with live amount = quantity × rate; parent invoice `total` auto-recomputed after item create/update/delete (including bulk delete)
+   - Navigation: appears under Filament group `Tools` with label “All Invoices” and icon `heroicon-o-clipboard-document-list`
+
 ## Technologies
 - Laravel 12 (PHP 8.3+)
 - Filament Admin (free version)
@@ -339,7 +348,8 @@ Notes:
   3. Google Binom Report
 
  - Additional group: `Tools`
-   1. Invoice
+  1. Invoice
+  2. All Invoices
 
 ### Combined Report (Rumble - Binom Report)
 - Navigate: `Rumble and Binom Reports Only` → `4. Rumble Binom Report`
