@@ -1,3 +1,18 @@
+## [0.7.4] - 2025-10-03
+### Changed
+- Invoice number format updated from `YYYY-NNN` to `INV-YYYY-NNN` across the app:
+  - `App/Filament/Pages/InvoiceGenerator.php` generates and saves `invoice_number` with `INV-` prefix.
+  - `App/Filament/Resources/InvoiceResource.php` default generator aligned to the same format.
+  - PDF title/display and downloaded filename continue to use `invoice_number` and therefore include `INV-`.
+  - Gmail draft attachment filename remains `Allan - {invoice_number}.pdf` and now includes `INV-`.
+
+### Added
+- Default Gmail subject on the Invoice page now includes the invoice number via `defaultEmailSubject()`:
+  - Subject defaults to `Allan Invoice {invoice_number}` (e.g., `Allan Invoice INV-2025-040`).
+
+### Docs
+- README updated to reflect `INV-YYYY-NNN` invoice numbering and new default email subject.
+
 ## [0.7.3] - 2025-09-04
 ### Added
 - Filament admin resource: "All Invoices" under Tools with full CRUD for invoices (List, Create, View, Edit, Delete).

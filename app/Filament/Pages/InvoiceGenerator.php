@@ -88,24 +88,24 @@ class InvoiceGenerator extends Page implements HasForms
     {
         $year = $date->year;
         $week = $date->isoWeek();
-        return sprintf('%04d-%03d', $year, $week);
+        return sprintf('INV-%04d-%03d', $year, $week);
     }
 
     protected function nextInvoiceNumberForYear(int $year): string
     {
-        // Find the highest sequence for the given year (invoice_number formatted as YYYY-NNN)
-        $latest = Invoice::where('invoice_number', 'like', sprintf('%04d-%%', $year))
+        // Find the highest sequence for the given year (invoice_number formatted as INV-YYYY-NNN)
+        $latest = Invoice::where('invoice_number', 'like', sprintf('INV-%04d-%%', $year))
             ->orderBy('invoice_number', 'desc')
             ->first();
 
-        if ($latest && preg_match('/^(\d{4})-(\d{3,})$/', $latest->invoice_number, $m)) {
+        if ($latest && preg_match('/^INV-(\d{4})-(\d{3,})$/', $latest->invoice_number, $m)) {
             $seq = (int) $m[2] + 1;
         } else {
             // If none exists yet this year, start at current ISO week
             $seq = Carbon::today()->isoWeek();
         }
 
-        return sprintf('%04d-%03d', $year, $seq);
+        return sprintf('INV-%04d-%03d', $year, $seq);
     }
 
     public function form(Form $form): Form
@@ -230,7 +230,7 @@ class InvoiceGenerator extends Page implements HasForms
                         ->required(),
                     TextInput::make('subject')
                         ->label('Subject')
-                        ->default(fn () => 'Allan Invoice ' . today()->format('d.m.Y'))
+                        ->default(fn () => $this->defaultEmailSubject())
                         ->required(),
                     Textarea::make('body')
                         ->label('Body')
@@ -311,6 +311,14 @@ class InvoiceGenerator extends Page implements HasForms
         ];
 
         return implode("\n", $lines);
+    }
+
+    protected function defaultEmailSubject(): string
+    {
+        $data = $this->form->getState();
+        $date = Carbon::today();
+        $invoiceNumber = (string) ($data['invoice_number'] ?? '') ?: $this->nextInvoiceNumberForYear($date->year);
+        return 'Allan Invoice ' . $invoiceNumber;
     }
 
     public function sendEmail(array $data): void

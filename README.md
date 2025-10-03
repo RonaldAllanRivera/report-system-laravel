@@ -11,7 +11,7 @@ Why it stands out:
  - Performance & scale: fast grouped views, lazy loads, and recent‑period limits on heavy pages while keeping totals consistent.
  - Spreadsheet fidelity: COPY TABLE outputs TSV + rich HTML with formulas (P/L, ROI, summaries) so pasted sheets compute immediately.
  - Optional Google integration: one‑click “CREATE SHEET” uses Google OAuth + Sheets/Drive APIs; data ingestion remains API‑free.
- - Invoices: one‑page Filament tool to generate and download PDF invoices instantly — auto invoice number (YYYY‑NNN), inline line‑item totals, embedded Arial font, and fixed filename `Allan - {invoice_number}.pdf`.
+ - Invoices: one‑page Filament tool to generate and download PDF invoices instantly — auto invoice number (INV‑YYYY‑NNN), inline line‑item totals, embedded Arial font, and fixed filename `Allan - {invoice_number}.pdf`.
 
 Roadmap (APIs & automation):
 - Connect Gmail (OAuth/Gmail API) to auto‑ingest email report attachments.
@@ -117,7 +117,7 @@ Roadmap (APIs & automation):
 
   - **Invoice Tool (Filament Page)**
    - Navigate: Tools → Invoice
-   - Form: Name, Bill To, Date (selectable; defaults to today), Invoice # (auto `YYYY‑NNN`), Notes
+   - Form: Name, Bill To, Date (selectable; defaults to today), Invoice # (auto `INV‑YYYY‑NNN`), Notes
    - Line Items: item, quantity, rate; amount and total auto-calculated
    - Action: Download PDF (saves invoice + items, then downloads)
    - Action: Create Gmail Draft (attaches the generated invoice PDF)
@@ -128,7 +128,7 @@ Roadmap (APIs & automation):
    - Purpose: Manage all invoices stored in the database with full CRUD
    - List view: searchable columns for Invoice #, Date, Name, and formatted Total
    - Actions: View, Edit, Delete, and Download PDF (opens existing `invoices.download` route)
-   - Create/Edit/View: manage invoice fields; `invoice_date` defaults to today and is selectable; `invoice_number` defaults to next `YYYY-NNN` for the current year and is unique
+   - Create/Edit/View: manage invoice fields; `invoice_date` defaults to today and is selectable; `invoice_number` defaults to next `INV-YYYY-NNN` for the current year and is unique
    - Items Relation Manager: add/edit/delete line items with live amount = quantity × rate; parent invoice `total` auto-recomputed after item create/update/delete (including bulk delete)
    - Navigation: appears under Filament group `Tools` with label “All Invoices” and icon `heroicon-o-clipboard-document-list`
 
@@ -317,6 +317,7 @@ Notes:
   - Navigate to `Tools → Invoice`.
   - If not authorized, a yellow "Connect Google" action appears; click it to start authorization.
   - When authorized, use the green "Create Gmail Draft" action, fill in To/Subject/Body, and submit. A Gmail draft will be created with the invoice PDF attached (filename `Allan - {invoice_number}.pdf`). Success shows the Draft ID.
+  - Subject default: `Allan Invoice {invoice_number}` (e.g., `Allan Invoice INV-2025-040`).
   - From email address uses `mail.from.*` in your config; body is plain text.
 
 ## Usage

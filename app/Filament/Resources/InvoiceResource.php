@@ -118,17 +118,17 @@ class InvoiceResource extends Resource
 
     public static function nextInvoiceNumberForYear(int $year): string
     {
-        $latest = Invoice::where('invoice_number', 'like', sprintf('%04d-%%', $year))
+        $latest = Invoice::where('invoice_number', 'like', sprintf('INV-%04d-%%', $year))
             ->orderBy('invoice_number', 'desc')
             ->first();
 
-        if ($latest && preg_match('/^(\d{4})-(\d{3,})$/', $latest->invoice_number, $m)) {
+        if ($latest && preg_match('/^INV-(\d{4})-(\d{3,})$/', $latest->invoice_number, $m)) {
             $seq = ((int) $m[2]) + 1;
         } else {
             // Match InvoiceGenerator behavior: start at current ISO week when first of the year
             $seq = now()->isoWeek();
         }
 
-        return sprintf('%04d-%03d', $year, $seq);
+        return sprintf('INV-%04d-%03d', $year, $seq);
     }
 }
