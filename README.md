@@ -320,6 +320,61 @@ Notes:
   - Subject default: `Allan Invoice {invoice_number}` (e.g., `Allan Invoice INV-2025-040`).
   - From email address uses `mail.from.*` in your config; body is plain text.
 
+### After Laragon install (Windows): OAuth/Gmail draft fix steps
+
+- **PHP on PATH**
+  - Prefer Laragon → Menu → Terminal (PHP is pre-configured), or add your PHP dir to PATH: `E:\laragon\bin\php\php-8.3.x-Win32-vs16-x64`.
+  - Verify:
+    ```powershell
+    php -v
+    php artisan -V
+    ```
+
+- **.env for local OAuth** (recommended localhost):
+  - Set:
+    ```ini
+    APP_URL=http://127.0.0.1:8000
+    GOOGLE_REDIRECT_URI=http://127.0.0.1:8000/google/callback
+    GOOGLE_SCOPES="https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/gmail.compose"
+    ```
+  - Clear caches:
+    ```powershell
+    php artisan optimize:clear
+    ```
+
+- **Fix cURL CA bundle path after reinstall** (cURL error 77):
+  - Download `cacert.pem` from https://curl.se/ca/cacert.pem and save to e.g. `E:\laragon\etc\ssl\cacert.pem`.
+  - Edit both php.ini (CLI and Apache via Laragon → PHP → php.ini):
+    ```ini
+    curl.cainfo = "E:\\laragon\\etc\\ssl\\cacert.pem"
+    openssl.cafile = "E:\\laragon\\etc\\ssl\\cacert.pem"
+    ```
+  - Restart Laragon services and terminal. Verify:
+    ```powershell
+    php -r "echo 'curl.cainfo=' . ini_get('curl.cainfo') . PHP_EOL;"
+    php -r "echo 'openssl.cafile=' . ini_get('openssl.cafile') . PHP_EOL;"
+    ```
+  - Remove stale env vars if present (Windows Env Vars): `SSL_CERT_FILE`, `CURL_CA_BUNDLE`.
+
+- **Google Cloud Console**
+  - Credentials → OAuth 2.0 Client → Authorized redirect URIs: add `http://127.0.0.1:8000/google/callback`.
+  - OAuth consent screen → set Publishing status to Testing → add your Google account to Test users.
+
+- **Re-authorize locally**
+  - Delete token to force consent (path: `storage/app/private/google_oauth_token.json`). Example:
+    ```powershell
+    New-Item -ItemType Directory -Force -Path .\storage\app\private | Out-Null
+    Remove-Item -Path .\storage\app\private\google_oauth_token.json -ErrorAction SilentlyContinue
+    ```
+  - Start server on 127.0.0.1:8000:
+    ```powershell
+    php artisan serve --host=127.0.0.1 --port=8000
+    ```
+  - Visit `http://127.0.0.1:8000/google/auth` and complete consent.
+
+- **Note on Laragon vhost**
+  - If you prefer `report-system-laravel.test`, use HTTPS and align `.env` + Google redirect to the HTTPS URL. For simplicity in local dev, prefer `127.0.0.1:8000`.
+
 ## Usage
 - Log in to Filament Admin
 - Google Data: upload CSV (Account name, Campaign, Cost); Weekly/Monthly only; presets end at yesterday; optional one‑line date range auto‑detect (e.g., "28 July 2025 - 3 August 2025")
