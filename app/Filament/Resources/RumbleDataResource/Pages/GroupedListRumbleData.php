@@ -114,25 +114,50 @@ class GroupedListRumbleData extends Page
                         throw new \Exception('Unable to read the uploaded file. Please try again.');
                     }
                     
-                    $handle = fopen($path, 'r');
-                    $header = fgetcsv($handle);
-                    $campaignIdx = array_search('Campaign', $header);
-                    $spendIdx = array_search('Spend', $header);
-                    $cpmIdx = array_search('CPM', $header);
+                    // Read entire file content and handle BOM
+                    $csvContent = file_get_contents($path);
+                    
+                    // Remove UTF-8 BOM if present
+                    $csvContent = preg_replace('/^\xEF\xBB\xBF/', '', $csvContent);
+                    
+                    // Split into lines and parse
+                    $lines = explode("\n", $csvContent);
+                    $lines = array_filter($lines, fn($line) => trim($line) !== '');
+                    
+                    if (empty($lines)) {
+                        throw new \Exception('CSV file is empty or invalid.');
+                    }
+                    
+                    // Parse header with BOM removal and case-insensitive search
+                    $header = str_getcsv(array_shift($lines));
+                    $header = array_map(fn($col) => trim($col), $header);
+                    
+                    // Case-insensitive search for required columns
+                    $campaignIdx = array_search('campaign', array_map('strtolower', $header));
+                    $spendIdx = array_search('spend', array_map('strtolower', $header));
+                    $cpmIdx = array_search('cpm', array_map('strtolower', $header));
 
                     if ($campaignIdx === false || $spendIdx === false || $cpmIdx === false) {
-                        throw new \Exception('CSV must contain Campaign, Spend, and CPM columns.');
+                        $availableHeaders = implode(', ', $header);
+                        throw new \Exception("CSV must contain Campaign, Spend, and CPM columns. Found: {$availableHeaders}");
                     }
 
                     $rows = [];
-                    while (($row = fgetcsv($handle)) !== false) {
+                    foreach ($lines as $line) {
+                        if (trim($line) === '') continue;
+                        
+                        $row = str_getcsv($line);
+                        if (count($row) < max($campaignIdx, $spendIdx, $cpmIdx) + 1) {
+                            continue; // Skip malformed rows
+                        }
+                        
                         // Remove the [12345] prefix from campaign names
-                        $campaignName = preg_replace('/^\[\d+\]\s*/', '', $row[$campaignIdx]);
+                        $campaignName = preg_replace('/^\[\d+\]\s*/', '', trim($row[$campaignIdx]));
                         
                         $rows[] = [
                             'campaign' => $campaignName,
-                            'spend' => $row[$spendIdx],
-                            'cpm' => $row[$cpmIdx],
+                            'spend' => floatval(str_replace(',', '', $row[$spendIdx])),
+                            'cpm' => floatval(str_replace(',', '', $row[$cpmIdx])),
                             'date_from' => $dateFrom,
                             'date_to' => $dateTo,
                             'report_type' => $reportType,
@@ -140,7 +165,10 @@ class GroupedListRumbleData extends Page
                             'updated_at' => now(),
                         ];
                     }
-                    fclose($handle);
+                    
+                    if (empty($rows)) {
+                        throw new \Exception('No valid data rows found in CSV file.');
+                    }
 
                     \App\Models\RumbleData::insert($rows);
 
